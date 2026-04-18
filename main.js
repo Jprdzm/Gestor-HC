@@ -12,6 +12,14 @@ const {
 let mainWindow;
 let sesionActiva = null;
 
+// Role helper — returns an error object if the active session lacks the required role,
+// or null if the check passes (null = ok, proceed).
+function requireRole(...allowedRoles) {
+  if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+  if (!allowedRoles.includes(sesionActiva.rol)) return { ok: false, error: 'Sin permisos.' };
+  return null;
+}
+
 // Simple in-memory brute-force protection: track failed attempts per username
 const loginAttempts = {};
 const MAX_ATTEMPTS = 5;
@@ -119,7 +127,16 @@ ipcMain.handle('registro', async (_event, datos) => {
     if (existe) return { ok: false, error: 'Este usuario ya está en uso.' };
 
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
-    const rol = esMedico ? 'Médico' : (titulo === 'Lic.' ? 'Enfermería' : 'Otro');
+    let rol;
+    if (esMedico) {
+      rol = 'Médico';
+    } else if (titulo === 'Lic.') {
+      rol = 'Enfermería';
+    } else if (titulo === 'Secretaria') {
+      rol = 'Secretaria';
+    } else {
+      rol = 'Otro';
+    }
 
     await dbRun(
       `INSERT INTO Usuario_PersonalSalud (username, password_hash, nombre_completo, cedula_profesional, titulo, sexo, rol) VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -155,7 +172,8 @@ ipcMain.handle('listar-pacientes', async () => {
 
 ipcMain.handle('guardar-paciente', async (_event, datos) => {
   try {
-    if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+    const chk = requireRole('Médico', 'Admin', 'Secretaria');
+    if (chk) return chk;
     const { folio, curp, nombre, paterno, materno, fecha, sexo } = datos;
     if (!folio || !curp || !nombre || !paterno || !fecha)
       return { ok: false, error: 'Faltan datos obligatorios.' };
@@ -200,6 +218,15 @@ ipcMain.handle('guardar-nota', async (_event, datos) => {
     const tiposValidos = ['primera_vez', 'evolucion', 'urgencias', 'enfermeria'];
     const tipoFinal = tiposValidos.includes(tipo_nota) ? tipo_nota : 'evolucion';
 
+    // Enfermería can only create nursing notes; Secretaria cannot create any note
+    if (tipoFinal === 'enfermeria') {
+      const chk = requireRole('Médico', 'Admin', 'Enfermería');
+      if (chk) return chk;
+    } else {
+      const chk = requireRole('Médico', 'Admin');
+      if (chk) return chk;
+    }
+
     const ultimaNota = await dbGet("SELECT hash_nota FROM Historia_Clinica_Nota WHERE folio_paciente = ? ORDER BY id_nota DESC LIMIT 1", [folio_paciente]);
     const hashAnterior = ultimaNota ? ultimaNota.hash_nota : 'GENESIS';
     const fechaCreacion = new Date().toISOString();
@@ -228,7 +255,8 @@ ipcMain.handle('guardar-nota', async (_event, datos) => {
 
 ipcMain.handle('obtener-notas', async (_event, folio) => {
   try {
-    if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+    const chk = requireRole('Médico', 'Admin', 'Enfermería');
+    if (chk) return chk;
     const notas = await dbAll(
       `SELECT n.*, u.nombre_completo AS nombre_creador, u.cedula_profesional FROM Historia_Clinica_Nota n JOIN Usuario_PersonalSalud u ON n.id_usuario_creador = u.id_usuario WHERE n.folio_paciente = ? ORDER BY n.fecha_creacion ASC`, [folio]
     );
@@ -238,7 +266,8 @@ ipcMain.handle('obtener-notas', async (_event, folio) => {
 
 ipcMain.handle('verificar-integridad-notas', async (_event, folio) => {
   try {
-    if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+    const chk = requireRole('Médico', 'Admin');
+    if (chk) return chk;
     const notas = await dbAll("SELECT * FROM Historia_Clinica_Nota WHERE folio_paciente = ? ORDER BY id_nota ASC", [folio]);
     let hashEsperado = 'GENESIS';
     for (const nota of notas) {
@@ -265,7 +294,8 @@ ipcMain.handle('verificar-integridad-notas', async (_event, folio) => {
 
 ipcMain.handle('guardar-consentimiento', async (_event, datos) => {
   try {
-    if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+    const chk = requireRole('Médico', 'Admin');
+    if (chk) return chk;
     const { folio_paciente, tipo_procedimiento, descripcion_procedimiento, riesgos, beneficios, alternativas, firma_paciente, nombre_paciente_firmante, firma_testigo1, nombre_testigo1, firma_testigo2, nombre_testigo2, firma_medico } = datos;
     if (!folio_paciente || !tipo_procedimiento || !descripcion_procedimiento || !riesgos) return { ok: false, error: 'Faltan campos obligatorios.' };
     if (!firma_paciente || !nombre_paciente_firmante) return { ok: false, error: 'Se requiere la firma del paciente.' };
@@ -286,7 +316,8 @@ ipcMain.handle('guardar-consentimiento', async (_event, datos) => {
 
 ipcMain.handle('obtener-consentimientos', async (_event, folio) => {
   try {
-    if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+    const chk = requireRole('Médico', 'Admin', 'Enfermería');
+    if (chk) return chk;
     const rows = await dbAll("SELECT * FROM Consentimiento_Informado WHERE folio_paciente = ? ORDER BY fecha_creacion DESC", [folio]);
     return { ok: true, consentimientos: rows };
   } catch (e) { console.error(e); return { ok: false, error: 'Error.' }; }
@@ -296,7 +327,8 @@ ipcMain.handle('obtener-consentimientos', async (_event, folio) => {
 
 ipcMain.handle('guardar-receta', async (_event, datos) => {
   try {
-    if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+    const chk = requireRole('Médico', 'Admin');
+    if (chk) return chk;
     const { folio_paciente, diagnostico, medicamentos, indicaciones, tipo_receta, firma_medico } = datos;
     if (!folio_paciente || !diagnostico || !medicamentos) return { ok: false, error: 'Faltan campos obligatorios.' };
     if (!sesionActiva.cedula_profesional) return { ok: false, error: 'Se requiere cédula profesional para emitir recetas.' };
@@ -315,7 +347,8 @@ ipcMain.handle('guardar-receta', async (_event, datos) => {
 
 ipcMain.handle('obtener-recetas', async (_event, folio) => {
   try {
-    if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+    const chk = requireRole('Médico', 'Admin', 'Enfermería');
+    if (chk) return chk;
     const rows = await dbAll("SELECT * FROM Receta_Medica WHERE folio_paciente = ? ORDER BY fecha_creacion DESC", [folio]);
     return { ok: true, recetas: rows };
   } catch (e) { console.error(e); return { ok: false, error: 'Error.' }; }
@@ -325,7 +358,8 @@ ipcMain.handle('obtener-recetas', async (_event, folio) => {
 
 ipcMain.handle('exportar-expediente', async (_event, folio) => {
   try {
-    if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+    const chk = requireRole('Médico', 'Admin');
+    if (chk) return chk;
     const paciente = await dbGet("SELECT * FROM Paciente WHERE folio_interno = ?", [folio]);
     if (!paciente) return { ok: false, error: 'No encontrado.' };
 
@@ -354,7 +388,8 @@ ipcMain.handle('exportar-expediente', async (_event, folio) => {
 
 ipcMain.handle('obtener-auditoria', async (_event, folio) => {
   try {
-    if (!sesionActiva) return { ok: false, error: 'Sin sesión.' };
+    const chk = requireRole('Médico', 'Admin');
+    if (chk) return chk;
     const rows = await dbAll(
       `SELECT a.*, u.nombre_completo FROM Registro_Auditoria a JOIN Usuario_PersonalSalud u ON a.id_usuario = u.id_usuario WHERE a.id_registro_afectado = ? ORDER BY a.fecha_hora DESC`, [folio]
     );

@@ -1,4 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const { CATALOGO_CIE10 } = require('./cie10_catalogo.js');
+
+contextBridge.exposeInMainWorld('CIE10_CATALOGO', CATALOGO_CIE10);
 
 contextBridge.exposeInMainWorld('api', {
   // Auth
@@ -16,10 +19,6 @@ contextBridge.exposeInMainWorld('api', {
   guardarNota: (d) => ipcRenderer.invoke('guardar-nota', d),
   obtenerNotas: (f) => ipcRenderer.invoke('obtener-notas', f),
   verificarIntegridadNotas: (f) => ipcRenderer.invoke('verificar-integridad-notas', f),
-
-  // CIE-10
-  buscarCIE10: (texto) => ipcRenderer.invoke('buscar-cie10', texto),
-  obtenerTodosCIE10: () => ipcRenderer.invoke('obtener-todos-cie10'),
 
   // Consentimiento
   guardarConsentimiento: (d) => ipcRenderer.invoke('guardar-consentimiento', d),
