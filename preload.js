@@ -1,5 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const { CATALOGO_CIE10 } = require('./cie10_catalogo.js');
+let CATALOGO_CIE10 = [];
+try {
+  ({ CATALOGO_CIE10 } = require('./cie10_catalogo.js'));
+} catch (e) {
+  console.error('Error cargando catálogo CIE-10:', e);
+}
 
 contextBridge.exposeInMainWorld('CIE10_CATALOGO', CATALOGO_CIE10);
 

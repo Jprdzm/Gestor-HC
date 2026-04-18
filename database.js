@@ -6,6 +6,11 @@ const crypto = require('crypto');
 const dbPath = path.join(__dirname, 'sistema_hc.db');
 const SALT_ROUNDS = 10;
 
+// SECURITY NOTE: In production, restrict file-system permissions on the .db file
+// so only the application user can read/write it. On Unix/Linux:
+//   chmod 600 sistema_hc.db
+// On Windows, use NTFS ACLs to limit access to the application service account only.
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) { console.error('Error al conectar con SQLite:', err.message); }
   else { console.log('Conexión exitosa a la base de datos SQLite.'); inicializarBaseDeDatos(); }
