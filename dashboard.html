@@ -177,6 +177,10 @@
     </div>
 
     <div class="sidebar-footer">
+      <div id="admin-sidebar" style="display:none; margin-bottom:10px;">
+        <div class="nav-label">Administración</div>
+        <button class="nav-btn" onclick="abrirModal('modal-crear-usuario')">👤 Crear Usuario</button>
+      </div>
       <button class="btn-salir" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
     </div>
   </div>
@@ -318,6 +322,46 @@
     </div>
   </div>
 
+  <!-- MODAL: CREAR USUARIO (Admin/Médico only) -->
+  <div class="modal-overlay" id="modal-crear-usuario">
+    <div class="modal-content" style="width:480px;">
+      <h2>👤 Crear Nuevo Usuario</h2>
+      <p style="font-size:11px; color:#718096; margin-bottom:16px;">Solo Médico y Administrador pueden registrar cuentas.</p>
+      <div class="error-modal" id="error-crear-usuario"></div>
+      <div class="form-grid">
+        <div class="form-group full"><label>Nombre Completo *</label><input type="text" id="cu-nombre" placeholder="Nombre completo"></div>
+        <div class="form-group">
+          <label>Título / Rol *</label>
+          <select id="cu-titulo">
+            <option value="" disabled selected>Seleccionar...</option>
+            <option value="Dr.">Dr. (Médico)</option>
+            <option value="Dra.">Dra. (Médica)</option>
+            <option value="Lic.">Lic. (Enfermería)</option>
+            <option value="Secretaria">Secretaria</option>
+            <option value="Sr.">Sr. (Otro)</option>
+            <option value="Sra.">Sra. (Otro)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sexo *</label>
+          <select id="cu-sexo">
+            <option value="" disabled selected>Seleccionar...</option>
+            <option value="M">Masculino</option>
+            <option value="F">Femenino</option>
+          </select>
+        </div>
+        <div class="form-group full" id="cu-campo-cedula" style="display:none;">
+          <label>Cédula Profesional *</label><input type="text" id="cu-cedula" placeholder="Número de cédula">
+        </div>
+        <div class="form-group full"><label>Nombre de Usuario *</label><input type="text" id="cu-usuario" placeholder="usuario.apellido"></div>
+        <div class="form-group"><label>Contraseña * (mín. 8 caracteres, 1 letra, 1 número)</label><input type="password" id="cu-password"></div>
+        <div class="form-group"><label>Confirmar Contraseña *</label><input type="password" id="cu-confirmar"></div>
+      </div>
+      <button class="btn-guardar" id="btn-crear-usuario" onclick="crearUsuario()">Crear Usuario</button>
+      <button class="btn-cancelar" onclick="cerrarModal('modal-crear-usuario')">Cancelar</button>
+    </div>
+  </div>
+
   <script>
     function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
 
@@ -430,6 +474,11 @@
       const esEnfermeria = rol === 'Enfermería';
       const esSecretaria = rol === 'Secretaria';
 
+      // Show admin section for Médico/Admin
+      if (esMedico) {
+        document.getElementById('admin-sidebar').style.display = 'block';
+      }
+
       // Registrar paciente: only Médico/Admin and Secretaria
       if (esEnfermeria) {
         document.getElementById('btn-reg-paciente').style.display = 'none';
@@ -467,6 +516,43 @@
     })();
 
     async function cerrarSesion() { await window.api.cerrarSesion(); }
+
+    // Show/hide cédula field in crear-usuario modal
+    document.getElementById('cu-titulo').addEventListener('change', function() {
+      const esMedico = this.value === 'Dr.' || this.value === 'Dra.';
+      document.getElementById('cu-campo-cedula').style.display = esMedico ? 'block' : 'none';
+      if (!esMedico) document.getElementById('cu-cedula').value = '';
+    });
+
+    async function crearUsuario() {
+      const nombre = document.getElementById('cu-nombre').value.trim();
+      const titulo = document.getElementById('cu-titulo').value;
+      const sexo = document.getElementById('cu-sexo').value;
+      const cedula = document.getElementById('cu-cedula').value.trim();
+      const usuario = document.getElementById('cu-usuario').value.trim();
+      const password = document.getElementById('cu-password').value;
+      const confirmar = document.getElementById('cu-confirmar').value;
+      const err = document.getElementById('error-crear-usuario');
+      const btn = document.getElementById('btn-crear-usuario');
+
+      if (!nombre || !titulo || !sexo || !usuario || !password || !confirmar) {
+        err.textContent = 'Llena todos los campos obligatorios.'; err.style.display = 'block'; return;
+      }
+      const esMedico = titulo === 'Dr.' || titulo === 'Dra.';
+      if (esMedico && !cedula) {
+        err.textContent = 'La cédula profesional es obligatoria para médicos.'; err.style.display = 'block'; return;
+      }
+
+      btn.disabled = true; btn.textContent = 'Creando...';
+      try {
+        const res = await window.api.registro({ nombre, usuario, password, confirmar, cedula, titulo, sexo });
+        if (res.ok) {
+          cerrarModal('modal-crear-usuario');
+          alert(`✅ Usuario "${usuario}" creado exitosamente.`);
+        } else { err.textContent = res.error; err.style.display = 'block'; }
+      } catch (e) { err.textContent = 'Error de conexión.'; err.style.display = 'block'; }
+      finally { btn.disabled = false; btn.textContent = 'Crear Usuario'; }
+    }
 
     // ── MODALES ──
     function abrirModal(id) { document.getElementById(id).classList.add('visible'); initCanvases(); }
@@ -813,7 +899,7 @@
       html += `</div>`;
 
       if (n.plan_tratamiento) html += `<div class="detail-section"><h4>Plan de Tratamiento</h4><p>${esc(n.plan_tratamiento)}</p></div>`;
-      if (n.firma_profesional) html += `<div class="detail-section"><h4>Firma del Profesional</h4><img src="${n.firma_profesional}" style="max-height:80px; border:1px solid #e2e8f0; border-radius:6px; padding:4px;"></div>`;
+      if (n.firma_profesional && /^data:image\/(png|jpeg|jpg|gif|webp);base64,/.test(n.firma_profesional)) html += `<div class="detail-section"><h4>Firma del Profesional</h4><img src="${n.firma_profesional}" style="max-height:80px; border:1px solid #e2e8f0; border-radius:6px; padding:4px;"></div>`;
 
       document.getElementById('detail-panel').innerHTML = html;
     }
