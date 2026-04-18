@@ -95,7 +95,7 @@ ipcMain.handle('login', async (event, usuario, password) => {
     }
 
     const row = await dbGet(
-      "SELECT * FROM Usuario_PersonalSalud WHERE username = ? AND activo = 1",
+      "SELECT * FROM Usuario_PersonalSalud WHERE username = ?",
       [key]
     );
     if (!row) {
@@ -109,6 +109,16 @@ ipcMain.handle('login', async (event, usuario, password) => {
       recordFailedAttempt(key);
       await registrarAuditoria(row.id_usuario, 'LOGIN_FALLIDO', null, `Contraseña incorrecta para: ${key}`);
       return { ok: false, error: 'Usuario o contraseña incorrectos.' };
+    }
+
+    // Check account status after successful password verification
+    if (row.rol === 'Pendiente') {
+      await registrarAuditoria(row.id_usuario, 'LOGIN_PENDIENTE', null, `Cuenta pendiente de aprobación: ${key}`);
+      return { ok: false, error: 'Tu cuenta está pendiente de aprobación por un administrador.' };
+    }
+    if (!row.activo) {
+      await registrarAuditoria(row.id_usuario, 'LOGIN_INACTIVO', null, `Intento de acceso con cuenta desactivada: ${key}`);
+      return { ok: false, error: 'Tu cuenta ha sido desactivada. Contacta al administrador.' };
     }
 
     // Successful login — clear attempt counter
@@ -135,13 +145,10 @@ ipcMain.handle('login', async (event, usuario, password) => {
 ipcMain.handle('registro', async (event, datos) => {
   if (!validateSender(event)) return { ok: false, error: 'Solicitud no autorizada.' };
   try {
-    // Allow registration only when:
-    // (1) Active session with Admin or Médico role, OR
-    // (2) No users exist yet (first-time setup)
-    if (!sesionActiva) {
-      const count = await dbGet("SELECT COUNT(*) AS cnt FROM Usuario_PersonalSalud");
-      if (count.cnt > 0) return { ok: false, error: 'Sin permisos.' };
-    } else if (!['Admin', 'Médico'].includes(sesionActiva.rol)) {
+    // esAdmin: logged-in Admin or Médico creating a user directly (assigns role, active immediately)
+    // No session: public self-registration → account created as 'Pendiente' (inactive until approved)
+    const esAdmin = sesionActiva && ['Admin', 'Médico'].includes(sesionActiva.rol);
+    if (sesionActiva && !esAdmin) {
       return { ok: false, error: 'Sin permisos.' };
     }
 
@@ -165,25 +172,29 @@ ipcMain.handle('registro', async (event, datos) => {
     if (existe) return { ok: false, error: 'Este usuario ya está en uso.' };
 
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
-    let rol;
-    if (esMedico) {
-      rol = 'Médico';
-    } else if (titulo === 'Lic.') {
-      rol = 'Enfermería';
-    } else if (titulo === 'Secretaria') {
-      rol = 'Secretaria';
+    let rol, activo;
+    if (esAdmin) {
+      // Admin/Médico creating a user: assign role directly, activate immediately
+      if (esMedico) rol = 'Médico';
+      else if (titulo === 'Lic.') rol = 'Enfermería';
+      else if (titulo === 'Secretaria') rol = 'Secretaria';
+      else rol = 'Otro';
+      activo = 1;
     } else {
-      rol = 'Otro';
+      // Public self-registration: pending approval
+      rol = 'Pendiente';
+      activo = 0;
     }
 
     await dbRun(
-      `INSERT INTO Usuario_PersonalSalud (username, password_hash, nombre_completo, cedula_profesional, titulo, sexo, rol) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [usuario.trim().toLowerCase(), hash, nombre.trim(), esMedico ? cedula.trim() : '', titulo, sexo, rol]
+      `INSERT INTO Usuario_PersonalSalud (username, password_hash, nombre_completo, cedula_profesional, titulo, sexo, rol, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [usuario.trim().toLowerCase(), hash, nombre.trim(), esMedico ? cedula.trim() : '', titulo, sexo, rol, activo]
     );
-    if (sesionActiva) {
+    if (esAdmin) {
       await registrarAuditoria(sesionActiva.id_usuario, 'CREAR_USUARIO', null, `Nuevo usuario: ${usuario.trim().toLowerCase()}, rol: ${rol}`);
+      return { ok: true };
     }
-    return { ok: true };
+    return { ok: true, pendiente: true, mensaje: 'Tu cuenta ha sido creada. Un administrador debe aprobar tu acceso antes de que puedas iniciar sesión.' };
   } catch (e) {
     console.error(e);
     return { ok: false, error: 'Error al registrar.' };
@@ -271,11 +282,6 @@ ipcMain.handle('guardar-nota', async (event, datos) => {
     const { folio_paciente, tipo_nota, motivo_consulta, exploracion_fisica, diagnostico_principal_cie10, plan_tratamiento, firma_profesional, campos_extra } = datos;
     if (!folio_paciente || !motivo_consulta || !diagnostico_principal_cie10)
       return { ok: false, error: 'Faltan campos obligatorios (motivo, diagnóstico).' };
-
-    // Prevent pipe-char in user-typed fields to avoid hash collisions
-    const pipeCheck = [motivo_consulta, exploracion_fisica || '', plan_tratamiento || ''];
-    if (pipeCheck.some(f => String(f).includes('|')))
-      return { ok: false, error: 'Los campos de texto no pueden contener el carácter | (barra vertical).' };
 
     const tiposValidos = ['primera_vez', 'evolucion', 'urgencias', 'enfermeria'];
     const tipoFinal = tiposValidos.includes(tipo_nota) ? tipo_nota : 'evolucion';
@@ -482,5 +488,65 @@ ipcMain.handle('obtener-auditoria', async (event, folio) => {
       `SELECT a.*, u.nombre_completo FROM Registro_Auditoria a JOIN Usuario_PersonalSalud u ON a.id_usuario = u.id_usuario WHERE a.id_registro_afectado = ? ORDER BY a.fecha_hora DESC`, [folio]
     );
     return { ok: true, registros: rows };
+  } catch (e) { console.error(e); return { ok: false, error: 'Error.' }; }
+});
+
+// ── Gestión de Usuarios ──────────────────────────────────────────
+
+ipcMain.handle('listar-usuarios', async (event) => {
+  if (!validateSender(event)) return { ok: false, error: 'Solicitud no autorizada.' };
+  checkSessionExpiry();
+  try {
+    const chk = requireRole('Admin', 'Médico');
+    if (chk) return chk;
+    touchSession();
+    const usuarios = await dbAll(
+      "SELECT id_usuario, username, nombre_completo, cedula_profesional, titulo, sexo, rol, activo FROM Usuario_PersonalSalud ORDER BY activo DESC, rol, nombre_completo"
+    );
+    return { ok: true, usuarios };
+  } catch (e) { console.error(e); return { ok: false, error: 'Error.' }; }
+});
+
+ipcMain.handle('aprobar-usuario', async (event, datos) => {
+  if (!validateSender(event)) return { ok: false, error: 'Solicitud no autorizada.' };
+  checkSessionExpiry();
+  try {
+    const chk = requireRole('Admin', 'Médico');
+    if (chk) return chk;
+    touchSession();
+    const { id_usuario, rol } = datos;
+    if (!id_usuario) return { ok: false, error: 'ID de usuario requerido.' };
+    const rolesValidos = ['Médico', 'Enfermería', 'Secretaria', 'Admin'];
+    if (!rolesValidos.includes(rol)) return { ok: false, error: 'Rol inválido.' };
+    await dbRun(
+      "UPDATE Usuario_PersonalSalud SET rol = ?, activo = 1 WHERE id_usuario = ?",
+      [rol, id_usuario]
+    );
+    await registrarAuditoria(sesionActiva.id_usuario, 'APROBAR_USUARIO', String(id_usuario), `Rol asignado: ${rol}`);
+    return { ok: true };
+  } catch (e) { console.error(e); return { ok: false, error: 'Error.' }; }
+});
+
+ipcMain.handle('desactivar-usuario', async (event, id_usuario) => {
+  if (!validateSender(event)) return { ok: false, error: 'Solicitud no autorizada.' };
+  checkSessionExpiry();
+  try {
+    const chk = requireRole('Admin', 'Médico');
+    if (chk) return chk;
+    touchSession();
+    if (!id_usuario) return { ok: false, error: 'ID de usuario requerido.' };
+    if (sesionActiva.id_usuario === id_usuario) return { ok: false, error: 'No puedes desactivar tu propia cuenta.' };
+    // Ensure at least one active Admin or Médico remains after the operation
+    const managersActivos = await dbAll(
+      "SELECT id_usuario FROM Usuario_PersonalSalud WHERE rol IN ('Admin','Médico') AND activo = 1 AND id_usuario != ?",
+      [id_usuario]
+    );
+    const targetUser = await dbGet("SELECT rol FROM Usuario_PersonalSalud WHERE id_usuario = ?", [id_usuario]);
+    if (targetUser && ['Admin', 'Médico'].includes(targetUser.rol) && managersActivos.length === 0) {
+      return { ok: false, error: 'No puedes desactivar al último administrador/médico activo del sistema.' };
+    }
+    await dbRun("UPDATE Usuario_PersonalSalud SET activo = 0 WHERE id_usuario = ?", [id_usuario]);
+    await registrarAuditoria(sesionActiva.id_usuario, 'DESACTIVAR_USUARIO', String(id_usuario));
+    return { ok: true };
   } catch (e) { console.error(e); return { ok: false, error: 'Error.' }; }
 });

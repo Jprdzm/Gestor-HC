@@ -29,6 +29,10 @@
     .campo select { cursor: pointer; appearance: auto; }
     .campo-row { display: flex; gap: 10px; margin-bottom: 16px; }
     .campo-row .campo { flex: 1; margin-bottom: 0; }
+    .tabs { display: flex; gap: 0; margin-bottom: 28px; border-bottom: 2px solid #e0e0e0; }
+    .tab-btn { flex: 1; padding: 10px; background: none; border: none; font-size: 14px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+    .tab-btn.activo { color: #111; border-bottom-color: #2c7a7b; }
+    .tab-btn:hover { color: #2c7a7b; }
     .olvide { text-align: right; font-size: 12px; color: #888; margin-bottom: 24px; cursor: pointer; }
     .btn-login { width: 100%; padding: 13px; background: #111; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
     .btn-login:hover { background: #2c7a7b; }
@@ -70,6 +74,10 @@
         <div class="logo-icono">🏥</div>
         <div><h3>Sistema HC</h3><p>Historia Clínica Digital</p></div>
       </div>
+      <div class="tabs">
+        <button class="tab-btn activo" id="tab-login-btn" onclick="cambiarFormulario('login')">Iniciar Sesión</button>
+        <button class="tab-btn" id="tab-registro-btn" onclick="cambiarFormulario('registro')">Registrarse</button>
+      </div>
       <div id="form-login">
         <div class="exito" id="exito-login"></div>
         <div class="error" id="error-login"></div>
@@ -78,15 +86,66 @@
         <div class="olvide" onclick="recuperarPassword()">¿Olvidaste tu contraseña?</div>
         <button class="btn-login" id="btn-login" onclick="login()">Iniciar sesión →</button>
       </div>
+      <div id="form-registro" style="display:none;">
+        <div class="exito" id="exito-registro"></div>
+        <div class="error" id="error-registro"></div>
+        <div class="campo"><input type="text" id="reg-nombre" placeholder="👤  Nombre completo"></div>
+        <div class="campo-row">
+          <div class="campo">
+            <select id="reg-titulo">
+              <option value="" disabled selected>Título...</option>
+              <option value="Dr.">Dr. (Médico)</option>
+              <option value="Dra.">Dra. (Médica)</option>
+              <option value="Lic.">Lic. (Enfermería)</option>
+              <option value="Secretaria">Secretaria</option>
+              <option value="Sr.">Sr.</option>
+              <option value="Sra.">Sra.</option>
+            </select>
+          </div>
+          <div class="campo">
+            <select id="reg-sexo">
+              <option value="" disabled selected>Sexo...</option>
+              <option value="M">Masculino</option>
+              <option value="F">Femenino</option>
+            </select>
+          </div>
+        </div>
+        <div class="campo" id="reg-campo-cedula" style="display:none;"><input type="text" id="reg-cedula" placeholder="🏷️  Cédula Profesional"></div>
+        <div class="campo"><input type="text" id="reg-usuario" placeholder="🔤  Nombre de usuario"></div>
+        <div class="campo"><input type="password" id="reg-password" placeholder="🔒  Contraseña (mín. 8 car., 1 letra, 1 número)"></div>
+        <div class="campo"><input type="password" id="reg-confirmar" placeholder="🔒  Confirmar contraseña"></div>
+        <button class="btn-login" id="btn-registro" onclick="registrarse()">Crear Cuenta →</button>
+      </div>
     </div>
   </div>
 
   <script>
+    function cambiarFormulario(form) {
+      const isLogin = form === 'login';
+      document.getElementById('form-login').style.display = isLogin ? 'block' : 'none';
+      document.getElementById('form-registro').style.display = isLogin ? 'none' : 'block';
+      document.getElementById('tab-login-btn').classList.toggle('activo', isLogin);
+      document.getElementById('tab-registro-btn').classList.toggle('activo', !isLogin);
+      document.getElementById('error-login').style.display = 'none';
+      document.getElementById('error-registro').style.display = 'none';
+      document.getElementById('exito-login').style.display = 'none';
+      document.getElementById('exito-registro').style.display = 'none';
+    }
+
     document.querySelectorAll('input').forEach(el => {
       el.addEventListener('input', () => {
         document.getElementById('error-login').style.display = 'none';
         document.getElementById('exito-login').style.display = 'none';
+        document.getElementById('error-registro').style.display = 'none';
+        document.getElementById('exito-registro').style.display = 'none';
       });
+    });
+
+    // Show/hide cédula field in registration
+    document.getElementById('reg-titulo').addEventListener('change', function() {
+      const esMedico = this.value === 'Dr.' || this.value === 'Dra.';
+      document.getElementById('reg-campo-cedula').style.display = esMedico ? 'block' : 'none';
+      if (!esMedico) document.getElementById('reg-cedula').value = '';
     });
 
     async function login() {
@@ -102,6 +161,37 @@
         else { error.textContent = res.error; error.style.display = 'block'; }
       } catch (e) { error.textContent = 'Error de conexión.'; error.style.display = 'block'; }
       finally { btn.disabled = false; btn.textContent = 'Iniciar sesión →'; }
+    }
+
+    async function registrarse() {
+      const error = document.getElementById('error-registro');
+      const exito = document.getElementById('exito-registro');
+      const btn = document.getElementById('btn-registro');
+      const nombre = document.getElementById('reg-nombre').value.trim();
+      const titulo = document.getElementById('reg-titulo').value;
+      const sexo = document.getElementById('reg-sexo').value;
+      const cedula = document.getElementById('reg-cedula').value.trim();
+      const usuario = document.getElementById('reg-usuario').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const confirmar = document.getElementById('reg-confirmar').value;
+      if (!nombre || !titulo || !sexo || !usuario || !password || !confirmar) {
+        error.textContent = 'Llena todos los campos obligatorios.'; error.style.display = 'block'; return;
+      }
+      btn.disabled = true; btn.textContent = 'Creando cuenta...';
+      try {
+        const res = await window.api.registro({ nombre, usuario, password, confirmar, cedula, titulo, sexo });
+        if (res.ok) {
+          document.getElementById('reg-nombre').value = '';
+          document.getElementById('reg-usuario').value = '';
+          document.getElementById('reg-password').value = '';
+          document.getElementById('reg-confirmar').value = '';
+          document.getElementById('reg-cedula').value = '';
+          exito.textContent = res.mensaje || 'Cuenta creada. Un administrador debe aprobar tu acceso.';
+          exito.style.display = 'block';
+          setTimeout(() => cambiarFormulario('login'), 4000);
+        } else { error.textContent = res.error; error.style.display = 'block'; }
+      } catch (e) { error.textContent = 'Error de conexión.'; error.style.display = 'block'; }
+      finally { btn.disabled = false; btn.textContent = 'Crear Cuenta →'; }
     }
 
     function recuperarPassword() {
