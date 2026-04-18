@@ -12,10 +12,9 @@ contextBridge.exposeInMainWorld('api', {
   guardarPaciente: (d) => ipcRenderer.invoke('guardar-paciente', d),
   buscarPaciente: (f) => ipcRenderer.invoke('buscar-paciente', f),
 
-  // Notas clínicas unificadas (11 tipos)
-  guardarNotaClinica: (d) => ipcRenderer.invoke('guardar-nota-clinica', d),
-  obtenerNotasClinicas: (f, tipo) => ipcRenderer.invoke('obtener-notas-clinicas', f, tipo),
-  obtenerTodasNotas: (f) => ipcRenderer.invoke('obtener-todas-notas', f),
+  // Notas clínicas
+  guardarNota: (d) => ipcRenderer.invoke('guardar-nota', d),
+  obtenerNotas: (f) => ipcRenderer.invoke('obtener-notas', f),
   verificarIntegridadNotas: (f) => ipcRenderer.invoke('verificar-integridad-notas', f),
 
   // CIE-10
