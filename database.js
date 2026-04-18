@@ -82,7 +82,8 @@ function inicializarBaseDeDatos() {
           `INSERT INTO Usuario_PersonalSalud (username, password_hash, nombre_completo, cedula_profesional, titulo, sexo, rol) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           ['admin', hash, 'Administrador del Sistema', '12345678', 'Dr.', 'M', 'Admin']
         );
-        console.log('Usuario admin creado.');
+        console.log('Usuario admin creado con contraseña por defecto.');
+        console.warn('⚠️  Cambie la contraseña del administrador inmediatamente después del primer inicio de sesión.');
       }
     } catch (e) { console.error('Error creando admin:', e); }
   });
