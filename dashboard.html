@@ -180,6 +180,7 @@
       <div id="admin-sidebar" style="display:none; margin-bottom:10px;">
         <div class="nav-label">Administración</div>
         <button class="nav-btn" onclick="abrirModal('modal-crear-usuario')">👤 Crear Usuario</button>
+        <button class="nav-btn" onclick="abrirGestionUsuarios()">🔑 Gestión de Usuarios</button>
       </div>
       <button class="btn-salir" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
     </div>
@@ -359,6 +360,24 @@
       </div>
       <button class="btn-guardar" id="btn-crear-usuario" onclick="crearUsuario()">Crear Usuario</button>
       <button class="btn-cancelar" onclick="cerrarModal('modal-crear-usuario')">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- MODAL: GESTIÓN DE USUARIOS (Admin/Médico only) -->
+  <div class="modal-overlay" id="modal-gestion-usuarios">
+    <div class="modal-content" style="width:780px; max-height:85vh; overflow-y:auto;">
+      <h2>🔑 Gestión de Usuarios</h2>
+      <p style="font-size:11px; color:#718096; margin-bottom:16px;">Aprueba solicitudes de registro y gestiona usuarios del sistema.</p>
+      <div id="gestion-pendientes">
+        <h3 style="font-size:14px; color:#e53e3e; margin-bottom:10px;">⏳ Cuentas Pendientes de Aprobación</h3>
+        <div id="lista-pendientes"><p style="color:#a0aec0; font-size:13px;">Cargando...</p></div>
+      </div>
+      <hr style="margin:20px 0; border-color:#e2e8f0;">
+      <div id="gestion-activos">
+        <h3 style="font-size:14px; color:#2b6cb0; margin-bottom:10px;">✅ Usuarios Activos</h3>
+        <div id="lista-activos"><p style="color:#a0aec0; font-size:13px;">Cargando...</p></div>
+      </div>
+      <button class="btn-cancelar" style="margin-top:16px;" onclick="cerrarModal('modal-gestion-usuarios')">Cerrar</button>
     </div>
   </div>
 
@@ -552,6 +571,105 @@
         } else { err.textContent = res.error; err.style.display = 'block'; }
       } catch (e) { err.textContent = 'Error de conexión.'; err.style.display = 'block'; }
       finally { btn.disabled = false; btn.textContent = 'Crear Usuario'; }
+    }
+
+    async function abrirGestionUsuarios() {
+      abrirModal('modal-gestion-usuarios');
+      await cargarListaUsuarios();
+    }
+
+    async function cargarListaUsuarios() {
+      const res = await window.api.listarUsuarios();
+      if (!res.ok) {
+        document.getElementById('lista-pendientes').innerHTML = `<p style="color:#e53e3e;">${esc(res.error)}</p>`;
+        document.getElementById('lista-activos').innerHTML = '';
+        return;
+      }
+
+      const pendientes = res.usuarios.filter(u => u.rol === 'Pendiente');
+      const activos = res.usuarios.filter(u => u.rol !== 'Pendiente');
+
+      // Render pending users
+      if (pendientes.length === 0) {
+        document.getElementById('lista-pendientes').innerHTML = '<p style="color:#a0aec0; font-size:13px;">No hay cuentas pendientes de aprobación. ✅</p>';
+      } else {
+        let html = '<table class="tabla-simple"><thead><tr><th>Usuario</th><th>Nombre</th><th>Título</th><th>Asignar Rol</th><th>Acción</th></tr></thead><tbody>';
+        pendientes.forEach(u => {
+          html += `<tr>
+            <td><code>${esc(u.username)}</code></td>
+            <td>${esc(u.nombre_completo)}</td>
+            <td>${esc(u.titulo)}</td>
+            <td>
+              <select id="rol-pendiente-${u.id_usuario}" style="padding:4px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+                <option value="">Seleccionar...</option>
+                <option value="Médico">Médico</option>
+                <option value="Enfermería">Enfermería</option>
+                <option value="Secretaria">Secretaria</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </td>
+            <td>
+              <button onclick="aprobarUsuario(${u.id_usuario})" style="background:#38a169; color:white; border:none; border-radius:4px; padding:5px 12px; font-size:12px; cursor:pointer; font-weight:600;">✅ Aprobar</button>
+            </td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('lista-pendientes').innerHTML = html;
+      }
+
+      // Render active/inactive users
+      if (activos.length === 0) {
+        document.getElementById('lista-activos').innerHTML = '<p style="color:#a0aec0; font-size:13px;">No hay usuarios registrados.</p>';
+      } else {
+        let html = '<table class="tabla-simple"><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead><tbody>';
+        activos.forEach(u => {
+          const estadoBadge = u.activo
+            ? '<span style="background:#c6f6d5; color:#22543d; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">Activo</span>'
+            : '<span style="background:#fed7d7; color:#742a2a; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">Inactivo</span>';
+          const accionBtn = u.activo
+            ? `<button onclick="desactivarUsuario(${u.id_usuario})" style="background:#e53e3e; color:white; border:none; border-radius:4px; padding:5px 10px; font-size:11px; cursor:pointer;">Desactivar</button>`
+            : `<select id="rol-inactivo-${u.id_usuario}" style="padding:3px 6px; border:1px solid #e2e8f0; border-radius:4px; font-size:11px; margin-right:4px;"><option value="">Rol...</option><option value="Médico">Médico</option><option value="Enfermería">Enfermería</option><option value="Secretaria">Secretaria</option><option value="Admin">Admin</option></select><button onclick="reactivarUsuario(${u.id_usuario})" style="background:#38a169; color:white; border:none; border-radius:4px; padding:5px 10px; font-size:11px; cursor:pointer;">Reactivar</button>`;
+          html += `<tr>
+            <td><code>${esc(u.username)}</code></td>
+            <td>${esc(u.nombre_completo)}</td>
+            <td><span style="font-weight:600;">${esc(u.rol)}</span></td>
+            <td>${estadoBadge}</td>
+            <td>${accionBtn}</td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('lista-activos').innerHTML = html;
+      }
+    }
+
+    async function aprobarUsuario(idUsuario) {
+      const select = document.getElementById(`rol-pendiente-${idUsuario}`);
+      const rol = select ? select.value : '';
+      if (!rol) { alert('Selecciona un rol antes de aprobar.'); return; }
+      const res = await window.api.aprobarUsuario({ id_usuario: idUsuario, rol });
+      if (res.ok) {
+        alert(`✅ Usuario aprobado con rol "${rol}".`);
+        await cargarListaUsuarios();
+      } else { alert(`Error: ${res.error}`); }
+    }
+
+    async function desactivarUsuario(idUsuario) {
+      if (!confirm('¿Seguro que deseas desactivar este usuario?')) return;
+      const res = await window.api.desactivarUsuario(idUsuario);
+      if (res.ok) {
+        await cargarListaUsuarios();
+      } else { alert(`Error: ${res.error}`); }
+    }
+
+    async function reactivarUsuario(idUsuario) {
+      const select = document.getElementById(`rol-inactivo-${idUsuario}`);
+      const rol = select ? select.value : '';
+      if (!rol) { alert('Selecciona un rol para reactivar al usuario.'); return; }
+      if (!confirm(`¿Reactivar este usuario con rol "${rol}"?`)) return;
+      const res = await window.api.aprobarUsuario({ id_usuario: idUsuario, rol });
+      if (res.ok) {
+        await cargarListaUsuarios();
+      } else { alert(`Error: ${res.error}`); }
     }
 
     // ── MODALES ──
