@@ -76,7 +76,8 @@ function inicializarBaseDeDatos() {
     try {
       const row = await dbGet("SELECT COUNT(*) AS count FROM Usuario_PersonalSalud");
       if (row.count === 0) {
-        const hash = await bcrypt.hash('1234', SALT_ROUNDS);
+        // WARNING: Change this default password immediately after first login.
+        const hash = await bcrypt.hash('Admin@HC2024!', SALT_ROUNDS);
         await dbRun(
           `INSERT INTO Usuario_PersonalSalud (username, password_hash, nombre_completo, cedula_profesional, titulo, sexo, rol) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           ['admin', hash, 'Administrador del Sistema', '12345678', 'Dr.', 'M', 'Admin']

@@ -12,6 +12,19 @@ const {
 let mainWindow;
 let sesionActiva = null;
 
+// Simple in-memory brute-force protection: track failed attempts per username
+const loginAttempts = {};
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+function recordFailedAttempt(key) {
+  if (!loginAttempts[key]) loginAttempts[key] = { count: 0 };
+  loginAttempts[key].count++;
+  if (loginAttempts[key].count >= MAX_ATTEMPTS) {
+    loginAttempts[key].lockedUntil = Date.now() + LOCKOUT_MS;
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200, height: 800,
@@ -39,13 +52,37 @@ ipcMain.handle('ir-a', async (_event, pagina) => {
 ipcMain.handle('login', async (_event, usuario, password) => {
   try {
     if (!usuario || !password) return { ok: false, error: 'Llena todos los campos.' };
+    const key = usuario.trim().toLowerCase();
+
+    // Rate-limiting check
+    const now = Date.now();
+    if (loginAttempts[key]) {
+      const entry = loginAttempts[key];
+      if (entry.lockedUntil && now < entry.lockedUntil) {
+        const mins = Math.ceil((entry.lockedUntil - now) / 60000);
+        return { ok: false, error: `Cuenta bloqueada temporalmente. Intente en ${mins} minuto(s).` };
+      }
+      if (entry.lockedUntil && now >= entry.lockedUntil) {
+        delete loginAttempts[key];
+      }
+    }
+
     const row = await dbGet(
       "SELECT * FROM Usuario_PersonalSalud WHERE username = ? AND activo = 1",
-      [usuario.trim().toLowerCase()]
+      [key]
     );
-    if (!row) return { ok: false, error: 'Usuario o contraseña incorrectos.' };
+    if (!row) {
+      recordFailedAttempt(key);
+      return { ok: false, error: 'Usuario o contraseña incorrectos.' };
+    }
     const match = await bcrypt.compare(password, row.password_hash);
-    if (!match) return { ok: false, error: 'Usuario o contraseña incorrectos.' };
+    if (!match) {
+      recordFailedAttempt(key);
+      return { ok: false, error: 'Usuario o contraseña incorrectos.' };
+    }
+
+    // Successful login — clear attempt counter
+    delete loginAttempts[key];
 
     sesionActiva = {
       id_usuario: row.id_usuario,
@@ -160,7 +197,7 @@ ipcMain.handle('guardar-nota', async (_event, datos) => {
     if (!folio_paciente || !motivo_consulta || !diagnostico_principal_cie10)
       return { ok: false, error: 'Faltan campos obligatorios (motivo, diagnóstico).' };
 
-    const tiposValidos = ['primera_vez', 'evolucion', 'postanestesica', 'urgencias', 'enfermeria'];
+    const tiposValidos = ['primera_vez', 'evolucion', 'urgencias', 'enfermeria'];
     const tipoFinal = tiposValidos.includes(tipo_nota) ? tipo_nota : 'evolucion';
 
     const ultimaNota = await dbGet("SELECT hash_nota FROM Historia_Clinica_Nota WHERE folio_paciente = ? ORDER BY id_nota DESC LIMIT 1", [folio_paciente]);

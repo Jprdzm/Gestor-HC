@@ -72,7 +72,6 @@
 
     .bg-primera { background: #2b6cb0; }
     .bg-evolucion { background: #dd6b20; }
-    .bg-postanestesica { background: #d69e2e; }
     .bg-urgencias { background: #e53e3e; }
     .bg-enfermeria { background: #38a169; }
     .bg-add { background: #4a5568; border: 2px dashed #a0aec0; color: #a0aec0; }
@@ -160,7 +159,6 @@
       <div class="nav-label">Notas Clínicas NOM-004</div>
       <button class="nav-btn" onclick="abrirModalNotaTipo('primera_vez')">📄 Nota de Primera Vez</button>
       <button class="nav-btn" onclick="abrirModalNotaTipo('evolucion')">📝 Nota de Evolución</button>
-      <button class="nav-btn" onclick="abrirModalNotaTipo('postanestesica')">💉 Nota Postanestésica</button>
       <button class="nav-btn" onclick="abrirModalNotaTipo('urgencias')">🚑 Nota de Urgencias</button>
       <button class="nav-btn" onclick="abrirModalNotaTipo('enfermeria')">👩‍⚕️ Nota de Enfermería</button>
 
@@ -867,30 +865,6 @@
             <div class="form-group full"><label>Resultados de Estudios (si aplica)</label><textarea id="extra-estudios" placeholder="Laboratorios, gabinete, imagen..."></textarea></div>
           </div>`
       },
-      postanestesica: {
-        titulo: '💉 Nota Postanestésica',
-        campos: `
-          <div class="form-grid">
-            <div class="form-group full"><label>Procedimiento Realizado *</label><textarea id="nota-motivo" placeholder="Descripción del procedimiento quirúrgico/anestésico realizado"></textarea></div>
-            <div class="form-group"><label>Tipo de Anestesia</label>
-              <select id="extra-tipo-anestesia">
-                <option value="">Seleccionar...</option>
-                <option value="General">General</option>
-                <option value="Regional">Regional</option>
-                <option value="Local">Local</option>
-                <option value="Sedación">Sedación</option>
-                <option value="Bloqueo neuroaxial">Bloqueo neuroaxial</option>
-                <option value="Combinada">Combinada</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Duración de la Anestesia</label><input type="text" id="extra-duracion" placeholder="Ej: 2 horas 30 min"></div>
-            <div class="form-group full"><label>Signos Vitales Postoperatorios</label><textarea id="nota-exploracion" placeholder="TA, FC, FR, Temp, SpO2 al ingreso a recuperación"></textarea></div>
-            <div class="form-group"><label>Escala de Aldrete (0-10)</label><input type="number" id="extra-aldrete" min="0" max="10" placeholder="0-10"></div>
-            <div class="form-group"><label>Escala EVA Dolor (0-10)</label><input type="number" id="extra-eva" min="0" max="10" placeholder="0-10"></div>
-            <div class="form-group full"><label>Complicaciones Anestésicas</label><textarea id="extra-complicaciones" placeholder="Ninguna / Describir complicaciones..."></textarea></div>
-            <div class="form-group full"><label>Plan de Vigilancia Postanestésica</label><textarea id="extra-vigilancia" placeholder="Indicaciones de vigilancia, criterios de alta de recuperación..."></textarea></div>
-          </div>`
-      },
       urgencias: {
         titulo: '🚑 Nota de Urgencias',
         campos: `
@@ -948,9 +922,9 @@
     };
 
     // Nombres legibles
-    const NOMBRES_TIPO = { primera_vez:'Primera Vez', evolucion:'Evolución', postanestesica:'Postanestésica', urgencias:'Urgencias', enfermeria:'Enfermería' };
-    const COLORES_TIPO = { primera_vez:'#2b6cb0', evolucion:'#dd6b20', postanestesica:'#d69e2e', urgencias:'#e53e3e', enfermeria:'#38a169' };
-    const ICONOS_TIPO = { primera_vez:'📄', evolucion:'📝', postanestesica:'💉', urgencias:'🚑', enfermeria:'👩‍⚕️' };
+    const NOMBRES_TIPO = { primera_vez:'Primera Vez', evolucion:'Evolución', urgencias:'Urgencias', enfermeria:'Enfermería' };
+    const COLORES_TIPO = { primera_vez:'#2b6cb0', evolucion:'#dd6b20', urgencias:'#e53e3e', enfermeria:'#38a169' };
+    const ICONOS_TIPO = { primera_vez:'📄', evolucion:'📝', urgencias:'🚑', enfermeria:'👩‍⚕️' };
 
     // ══════════════════════════════════════════════════
     //  INIT
@@ -1021,11 +995,15 @@
         html += `<div class="cie10-chapter">${cap.cap}</div>`;
         filtrados.forEach(c => {
           const sel = cie10Seleccionados.some(s => s.c === c.c) ? 'selected' : '';
-          html += `<div class="cie10-option ${sel}" onclick="toggleCIE10('${c.c}','${esc(c.d).replace(/'/g,"\\'")}')"><span><span class="code">${c.c}</span>${esc(c.d)}</span>${sel ? '✓' : ''}</div>`;
+          html += `<div class="cie10-option ${sel}" data-code="${esc(c.c)}" data-desc="${esc(c.d)}"><span><span class="code">${esc(c.c)}</span>${esc(c.d)}</span>${sel ? '✓' : ''}</div>`;
         });
       });
       if (!html) html = '<div style="padding:12px; color:#a0aec0; text-align:center;">Sin resultados</div>';
       dd.innerHTML = html;
+      // Attach click handlers via event delegation (avoids inline onclick XSS risk)
+      dd.querySelectorAll('.cie10-option').forEach(el => {
+        el.addEventListener('click', () => toggleCIE10(el.dataset.code, el.dataset.desc));
+      });
     }
 
     function toggleCIE10(codigo, descripcion) {
@@ -1043,7 +1021,12 @@
       cie10Seleccionados.forEach(s => {
         const tag = document.createElement('span');
         tag.className = 'cie10-tag';
-        tag.innerHTML = `${s.c} <span class="remove" onclick="event.stopPropagation(); toggleCIE10('${s.c}','${s.d.replace(/'/g,"\\'")}')">×</span>`;
+        tag.appendChild(document.createTextNode(`${s.c} - ${s.d} `));
+        const removeBtn = document.createElement('span');
+        removeBtn.className = 'remove';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleCIE10(s.c, s.d); });
+        tag.appendChild(removeBtn);
         container.appendChild(tag);
       });
       container.appendChild(searchInput);
@@ -1255,7 +1238,7 @@
         </div>`;
 
       // Campos principales
-      html += `<div class="detail-section"><h4>${tipo === 'primera_vez' ? 'Motivo de Consulta / Padecimiento Actual' : tipo === 'urgencias' ? 'Motivo de Atención' : tipo === 'enfermeria' ? 'Valoración de Enfermería' : tipo === 'postanestesica' ? 'Procedimiento Realizado' : 'Evolución / Estado Actual'}</h4><p>${esc(n.motivo_consulta)}</p></div>`;
+      html += `<div class="detail-section"><h4>${tipo === 'primera_vez' ? 'Motivo de Consulta / Padecimiento Actual' : tipo === 'urgencias' ? 'Motivo de Atención' : tipo === 'enfermeria' ? 'Valoración de Enfermería' : 'Evolución / Estado Actual'}</h4><p>${esc(n.motivo_consulta)}</p></div>`;
 
       // Campos extra según tipo
       if (tipo === 'primera_vez') {
@@ -1264,14 +1247,6 @@
         if (extras.app) html += `<div class="detail-section"><h4>Antecedentes Personales Patológicos</h4><p>${esc(extras.app)}</p></div>`;
         if (extras.ago) html += `<div class="detail-section"><h4>Antecedentes Gineco-Obstétricos</h4><p>${esc(extras.ago)}</p></div>`;
         if (extras.ipas) html += `<div class="detail-section"><h4>Interrogatorio por Aparatos y Sistemas</h4><p>${esc(extras.ipas)}</p></div>`;
-      }
-      if (tipo === 'postanestesica') {
-        if (extras['tipo-anestesia']) html += `<div class="detail-section"><h4>Tipo de Anestesia</h4><p>${esc(extras['tipo-anestesia'])}</p></div>`;
-        if (extras.duracion) html += `<div class="detail-section"><h4>Duración</h4><p>${esc(extras.duracion)}</p></div>`;
-        if (extras.aldrete) html += `<div class="detail-section"><h4>Escala de Aldrete</h4><p>${esc(extras.aldrete)}/10</p></div>`;
-        if (extras.eva) html += `<div class="detail-section"><h4>EVA Dolor</h4><p>${esc(extras.eva)}/10</p></div>`;
-        if (extras.complicaciones) html += `<div class="detail-section"><h4>Complicaciones</h4><p>${esc(extras.complicaciones)}</p></div>`;
-        if (extras.vigilancia) html += `<div class="detail-section"><h4>Plan de Vigilancia</h4><p>${esc(extras.vigilancia)}</p></div>`;
       }
       if (tipo === 'urgencias') {
         if (extras['hora-llegada']) html += `<div class="detail-section"><h4>Hora de Llegada</h4><p>${esc(extras['hora-llegada'])}</p></div>`;
