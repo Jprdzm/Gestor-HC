@@ -225,7 +225,6 @@
     </div>
   </div>
 
-  <!-- MODAL: REGISTRAR PACIENTE -->
   <div class="modal-overlay" id="modal-paciente">
     <div class="modal-content">
       <h2>Registrar Nuevo Paciente</h2>
@@ -245,7 +244,6 @@
     </div>
   </div>
 
-  <!-- MODAL: NOTA CLÍNICA UNIVERSAL (campos dinámicos) -->
   <div class="modal-overlay" id="modal-nota">
     <div class="modal-content" style="width:800px;">
       <h2 id="modal-nota-titulo">📝 Nueva Nota Clínica</h2>
@@ -253,10 +251,8 @@
       <div class="error-modal" id="error-nota"></div>
       <input type="hidden" id="nota-tipo" value="evolucion">
 
-      <!-- Campos dinámicos se inyectan aquí -->
       <div id="campos-dinamicos-nota"></div>
 
-      <!-- CIE-10 siempre presente -->
       <div style="margin-top:14px;">
         <label style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.3px; margin-bottom:4px; display:block;">Diagnóstico(s) CIE-10 *</label>
         <div class="cie10-container" id="cie10-container">
@@ -267,7 +263,6 @@
         </div>
       </div>
 
-      <!-- Plan de tratamiento siempre presente -->
       <div class="form-grid" style="margin-top:14px;">
         <div class="form-group full"><label>Plan de Tratamiento / Indicaciones</label><textarea id="nota-plan" placeholder="Plan terapéutico"></textarea></div>
         <div class="form-group full">
@@ -280,7 +275,6 @@
     </div>
   </div>
 
-  <!-- MODAL: CONSENTIMIENTO INFORMADO -->
   <div class="modal-overlay" id="modal-consentimiento">
     <div class="modal-content" style="width:800px;">
       <h2>✍️ Consentimiento Informado</h2>
@@ -305,7 +299,6 @@
     </div>
   </div>
 
-  <!-- MODAL: RECETA MÉDICA -->
   <div class="modal-overlay" id="modal-receta">
     <div class="modal-content">
       <h2>💊 Receta Médica</h2>
@@ -323,7 +316,6 @@
     </div>
   </div>
 
-  <!-- MODAL: CREAR USUARIO (Admin/Médico only) -->
   <div class="modal-overlay" id="modal-crear-usuario">
     <div class="modal-content" style="width:480px;">
       <h2>👤 Crear Nuevo Usuario</h2>
@@ -363,7 +355,6 @@
     </div>
   </div>
 
-  <!-- MODAL: GESTIÓN DE USUARIOS (Admin/Médico only) -->
   <div class="modal-overlay" id="modal-gestion-usuarios">
     <div class="modal-content" style="width:780px; max-height:85vh; overflow-y:auto;">
       <h2>🔑 Gestión de Usuarios</h2>
@@ -476,7 +467,6 @@
       }
     };
 
-    // Nombres legibles
     const NOMBRES_TIPO = { primera_vez:'Primera Vez', evolucion:'Evolución', urgencias:'Urgencias', enfermeria:'Enfermería' };
     const COLORES_TIPO = { primera_vez:'#2b6cb0', evolucion:'#dd6b20', urgencias:'#e53e3e', enfermeria:'#38a169' };
     const ICONOS_TIPO = { primera_vez:'📄', evolucion:'📝', urgencias:'🚑', enfermeria:'👩‍⚕️' };
@@ -493,17 +483,12 @@
       const esEnfermeria = rol === 'Enfermería';
       const esSecretaria = rol === 'Secretaria';
 
-      // Show admin section for Médico/Admin
       if (esMedico) {
         document.getElementById('admin-sidebar').style.display = 'block';
       }
-
-      // Registrar paciente: only Médico/Admin and Secretaria
       if (esEnfermeria) {
         document.getElementById('btn-reg-paciente').style.display = 'none';
       }
-
-      // Secretaria: hide all clinical document tabs and note-creation buttons
       if (esSecretaria) {
         document.getElementById('tab-notas').style.display = 'none';
         document.getElementById('tab-consentimientos').style.display = 'none';
@@ -513,8 +498,6 @@
         document.getElementById('btn-nota-enfermeria').style.display = 'none';
         document.getElementById('btns-solo-medico').style.display = 'none';
       }
-
-      // Enfermería: hide medical-only notes and documents, but keep nursing note button
       if (esEnfermeria) {
         document.getElementById('btns-notas-medico').style.display = 'none';
         document.getElementById('btns-solo-medico').style.display = 'none';
@@ -536,7 +519,6 @@
 
     async function cerrarSesion() { await window.api.cerrarSesion(); }
 
-    // Show/hide cédula field in crear-usuario modal
     document.getElementById('cu-titulo').addEventListener('change', function() {
       const esMedico = this.value === 'Dr.' || this.value === 'Dra.';
       document.getElementById('cu-campo-cedula').style.display = esMedico ? 'block' : 'none';
@@ -589,7 +571,6 @@
       const pendientes = res.usuarios.filter(u => u.rol === 'Pendiente');
       const activos = res.usuarios.filter(u => u.rol !== 'Pendiente');
 
-      // Render pending users
       if (pendientes.length === 0) {
         document.getElementById('lista-pendientes').innerHTML = '<p style="color:#a0aec0; font-size:13px;">No hay cuentas pendientes de aprobación. ✅</p>';
       } else {
@@ -617,7 +598,6 @@
         document.getElementById('lista-pendientes').innerHTML = html;
       }
 
-      // Render active/inactive users
       if (activos.length === 0) {
         document.getElementById('lista-activos').innerHTML = '<p style="color:#a0aec0; font-size:13px;">No hay usuarios registrados.</p>';
       } else {
@@ -688,7 +668,7 @@
     function initCanvases() {
       setTimeout(() => {
         document.querySelectorAll('.firma-container canvas').forEach(canvas => {
-          if (canvasInit[canvas.id]) { canvasInit[canvas.id] = false; } // Reset for re-init
+          if (canvasInit[canvas.id]) { canvasInit[canvas.id] = false; }
           canvas.width = canvas.offsetWidth; canvas.height = 90;
           const ctx = canvas.getContext('2d');
           ctx.strokeStyle = '#1a202c'; ctx.lineWidth = 2; ctx.lineCap = 'round';
@@ -725,14 +705,12 @@
       }
       const filtrados = catalogo.filter(c => c.codigo.toLowerCase().includes(f) || c.descripcion.toLowerCase().includes(f));
       let html = '';
-      // cie10Seleccionados uses { c, d } internally; catalog uses { codigo, descripcion }
       filtrados.forEach(cat => {
         const sel = cie10Seleccionados.some(s => s.c === cat.codigo) ? 'selected' : '';
         html += `<div class="cie10-option ${sel}" data-code="${esc(cat.codigo)}" data-desc="${esc(cat.descripcion)}"><span><span class="code">${esc(cat.codigo)}</span>${esc(cat.descripcion)}</span>${sel ? '✓' : ''}</div>`;
       });
       if (!html) html = '<div style="padding:12px; color:#a0aec0; text-align:center;">Sin resultados</div>';
       dd.innerHTML = html;
-      // Attach click handlers via event delegation (avoids inline onclick XSS risk)
       dd.querySelectorAll('.cie10-option').forEach(el => {
         el.addEventListener('click', () => toggleCIE10(el.dataset.code, el.dataset.desc));
       });
@@ -749,7 +727,10 @@
     function renderCIE10Tags() {
       const container = document.getElementById('cie10-selected');
       const searchInput = document.getElementById('cie10-search');
-      container.innerHTML = '';
+      
+      // SOLUCIÓN: Limpiar solo las etiquetas que NO son la barra de búsqueda
+      Array.from(container.querySelectorAll('.cie10-tag')).forEach(el => el.remove());
+
       cie10Seleccionados.forEach(s => {
         const tag = document.createElement('span');
         tag.className = 'cie10-tag';
@@ -759,15 +740,14 @@
         removeBtn.textContent = '×';
         removeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleCIE10(s.c, s.d); });
         tag.appendChild(removeBtn);
-        container.appendChild(tag);
+        // SOLUCIÓN: Insertamos la etiqueta de manera segura antes de la barra de búsqueda
+        container.insertBefore(tag, searchInput);
       });
-      container.appendChild(searchInput);
     }
 
     function filtrarCIE10(valor) { renderCIE10Dropdown(valor); abrirDropdownCIE10(); }
     function abrirDropdownCIE10() { document.getElementById('cie10-dropdown').classList.add('open'); renderCIE10Dropdown(document.getElementById('cie10-search').value); }
 
-    // Cerrar dropdown al hacer clic fuera
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.cie10-container')) document.getElementById('cie10-dropdown')?.classList.remove('open');
     });
@@ -828,7 +808,6 @@
       document.getElementById('sidebar-nav').style.display = 'none';
       document.getElementById('acciones-exp').style.display = 'block';
       if (rolUsuario === 'Secretaria') {
-        // Secretaria sees only demographic data — no tabs, no timeline
         document.getElementById('timeline-section').style.display = 'none';
         document.getElementById('detail-panel').innerHTML = '<div class="detail-inner"><div class="empty-state" style="padding:40px; text-align:center; color:#718096;">ℹ️ Puede consultar los datos demográficos del paciente mostrados en la ficha superior.</div></div>';
       } else {
@@ -850,7 +829,6 @@
     // ══════════════════════════════════════════════════
 
     function cambiarTab(tab) {
-      // Role guard: Secretaria cannot access any tab; Enfermería cannot access auditoria
       if (rolUsuario === 'Secretaria') return;
       if (rolUsuario === 'Enfermería' && tab === 'auditoria') return;
 
@@ -890,7 +868,6 @@
 
       const diagnosticoStr = cie10Seleccionados.map(s => `${s.c}: ${s.d}`).join(' | ');
 
-      // Recopilar campos extra
       const camposExtra = {};
       document.querySelectorAll('#campos-dinamicos-nota [id^="extra-"]').forEach(el => {
         const key = el.id.replace('extra-', '');
@@ -979,10 +956,8 @@
           <span class="detail-badge" title="Hash SHA-256">🔒 ${n.hash_nota.substring(0,20)}...</span>
         </div>`;
 
-      // Campos principales
       html += `<div class="detail-section"><h4>${tipo === 'primera_vez' ? 'Motivo de Consulta / Padecimiento Actual' : tipo === 'urgencias' ? 'Motivo de Atención' : tipo === 'enfermeria' ? 'Valoración de Enfermería' : 'Evolución / Estado Actual'}</h4><p>${esc(n.motivo_consulta)}</p></div>`;
 
-      // Campos extra según tipo
       if (tipo === 'primera_vez') {
         if (extras.ahf) html += `<div class="detail-section"><h4>Antecedentes Heredo-Familiares</h4><p>${esc(extras.ahf)}</p></div>`;
         if (extras.apnp) html += `<div class="detail-section"><h4>Antecedentes Personales No Patológicos</h4><p>${esc(extras.apnp)}</p></div>`;
@@ -1010,7 +985,6 @@
 
       if (n.exploracion_fisica) html += `<div class="detail-section"><h4>Exploración Física / Signos Vitales</h4><p>${esc(n.exploracion_fisica)}</p></div>`;
 
-      // Diagnósticos CIE-10
       html += `<div class="detail-section"><h4>Diagnóstico(s) CIE-10</h4>`;
       const diags = (n.diagnostico_principal_cie10 || '').split(' | ');
       diags.forEach(d => { html += `<span class="tipo-nota-badge" style="background:#ebf8ff; color:#2b6cb0; margin:2px 4px 2px 0; display:inline-block;">${esc(d)}</span>`; });
@@ -1097,7 +1071,7 @@
 
     // ══════════════════════════════════════════════════
     //  VERIFICAR INTEGRIDAD
-    // ════════════════════════════════════════════��═════
+    // ══════════════════════════════════════════════════
 
     async function verificarIntegridad() {
       if (!folioActivo) return;

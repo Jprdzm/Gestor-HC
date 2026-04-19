@@ -55,7 +55,9 @@ function createWindow() {
     width: 1200, height: 800,
     title: 'Sistema HC - Historias Clínicas',
     webPreferences: {
-      nodeIntegration: false, contextIsolation: true,
+      nodeIntegration: false, 
+      contextIsolation: true,
+      sandbox: false, // <-- SOLUCIÓN: Permite el require() de archivos locales en preload.js
       preload: path.join(__dirname, 'preload.js'),
     },
   });
@@ -100,7 +102,6 @@ ipcMain.handle('login', async (event, usuario, password) => {
     );
     if (!row) {
       recordFailedAttempt(key);
-      // Audit failed attempt without a real user id (use 0 as sentinel; FK not enforced by default)
       try { await registrarAuditoria(0, 'LOGIN_FALLIDO', null, `Intento de inicio de sesión con usuario desconocido: ${key}`); } catch (_) {}
       return { ok: false, error: 'Usuario o contraseña incorrectos.' };
     }
@@ -111,7 +112,6 @@ ipcMain.handle('login', async (event, usuario, password) => {
       return { ok: false, error: 'Usuario o contraseña incorrectos.' };
     }
 
-    // Check account status after successful password verification
     if (row.rol === 'Pendiente') {
       await registrarAuditoria(row.id_usuario, 'LOGIN_PENDIENTE', null, `Cuenta pendiente de aprobación: ${key}`);
       return { ok: false, error: 'Tu cuenta está pendiente de aprobación por un administrador.' };
@@ -121,7 +121,6 @@ ipcMain.handle('login', async (event, usuario, password) => {
       return { ok: false, error: 'Tu cuenta ha sido desactivada. Contacta al administrador.' };
     }
 
-    // Successful login — clear attempt counter
     delete loginAttempts[key];
 
     sesionActiva = {
@@ -145,8 +144,6 @@ ipcMain.handle('login', async (event, usuario, password) => {
 ipcMain.handle('registro', async (event, datos) => {
   if (!validateSender(event)) return { ok: false, error: 'Solicitud no autorizada.' };
   try {
-    // esAdmin: logged-in Admin or Médico creating a user directly (assigns role, active immediately)
-    // No session: public self-registration → account created as 'Pendiente' (inactive until approved)
     const esAdmin = sesionActiva && ['Admin', 'Médico'].includes(sesionActiva.rol);
     if (sesionActiva && !esAdmin) {
       return { ok: false, error: 'Sin permisos.' };
@@ -174,14 +171,12 @@ ipcMain.handle('registro', async (event, datos) => {
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
     let rol, activo;
     if (esAdmin) {
-      // Admin/Médico creating a user: assign role directly, activate immediately
       if (esMedico) rol = 'Médico';
       else if (titulo === 'Lic.') rol = 'Enfermería';
       else if (titulo === 'Secretaria') rol = 'Secretaria';
       else rol = 'Otro';
       activo = 1;
     } else {
-      // Public self-registration: pending approval
       rol = 'Pendiente';
       activo = 0;
     }
@@ -286,7 +281,6 @@ ipcMain.handle('guardar-nota', async (event, datos) => {
     const tiposValidos = ['primera_vez', 'evolucion', 'urgencias', 'enfermeria'];
     const tipoFinal = tiposValidos.includes(tipo_nota) ? tipo_nota : 'evolucion';
 
-    // Enfermería can only create nursing notes; Secretaria cannot create any note
     if (tipoFinal === 'enfermeria') {
       const chk = requireRole('Médico', 'Admin', 'Enfermería');
       if (chk) return chk;
@@ -536,7 +530,6 @@ ipcMain.handle('desactivar-usuario', async (event, id_usuario) => {
     touchSession();
     if (!id_usuario) return { ok: false, error: 'ID de usuario requerido.' };
     if (sesionActiva.id_usuario === id_usuario) return { ok: false, error: 'No puedes desactivar tu propia cuenta.' };
-    // Ensure at least one active Admin or Médico remains after the operation
     const managersActivos = await dbAll(
       "SELECT id_usuario FROM Usuario_PersonalSalud WHERE rol IN ('Admin','Médico') AND activo = 1 AND id_usuario != ?",
       [id_usuario]
