@@ -1,14 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron');
-let CATALOGO_CIE10 = [];
-try {
-  ({ CATALOGO_CIE10 } = require('./cie10_catalogo.js'));
-} catch (e) {
-  console.error('Error cargando catálogo CIE-10:', e);
-}
-
-contextBridge.exposeInMainWorld('CIE10_CATALOGO', CATALOGO_CIE10);
 
 contextBridge.exposeInMainWorld('api', {
+  // Catálogo y PDFs
+  obtenerCatalogoCIE10: () => ipcRenderer.invoke('obtener-catalogo-cie10'),
+  exportarNotaPDF: (n, p) => ipcRenderer.invoke('exportar-nota-pdf', n, p),
+  exportarRecetaPDF: (r, p) => ipcRenderer.invoke('exportar-receta-pdf', r, p),
+  exportarConsentimientoPDF: (c, p) => ipcRenderer.invoke('exportar-consentimiento-pdf', c, p),
+
   // Auth
   login: (u, p) => ipcRenderer.invoke('login', u, p),
   registro: (d) => ipcRenderer.invoke('registro', d),
@@ -25,22 +23,17 @@ contextBridge.exposeInMainWorld('api', {
   obtenerNotas: (f) => ipcRenderer.invoke('obtener-notas', f),
   verificarIntegridadNotas: (f) => ipcRenderer.invoke('verificar-integridad-notas', f),
 
-  // Consentimiento
+  // Otros documentos
   guardarConsentimiento: (d) => ipcRenderer.invoke('guardar-consentimiento', d),
   obtenerConsentimientos: (f) => ipcRenderer.invoke('obtener-consentimientos', f),
-
-  // Recetas
   guardarReceta: (d) => ipcRenderer.invoke('guardar-receta', d),
   obtenerRecetas: (f) => ipcRenderer.invoke('obtener-recetas', f),
-
-  // Exportar / Auditoría
+  
+  // Herramientas y Admin
   exportarExpediente: (f) => ipcRenderer.invoke('exportar-expediente', f),
   obtenerAuditoria: (f) => ipcRenderer.invoke('obtener-auditoria', f),
-
-  // Gestión de Usuarios (Admin/Médico)
   listarUsuarios: () => ipcRenderer.invoke('listar-usuarios'),
   aprobarUsuario: (d) => ipcRenderer.invoke('aprobar-usuario', d),
   desactivarUsuario: (id) => ipcRenderer.invoke('desactivar-usuario', id),
-
   irA: (p) => ipcRenderer.invoke('ir-a', p),
 });

@@ -3,158 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard - Expediente Clínico</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
-    body { display: flex; height: 100vh; background-color: #f0f4f8; overflow: hidden; }
-
-    .sidebar { width: 260px; background: #1a365d; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
-    .sidebar-header { padding: 18px 20px; font-size: 20px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; }
-    .sidebar-header span { font-size: 22px; }
-    .perfil-box { padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-    .perfil-box .avatar { width: 44px; height: 44px; background: #ebf8ff; color: #2b6cb0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; flex-shrink: 0; }
-    .perfil-row { display: flex; align-items: center; gap: 12px; }
-    .perfil-box h4 { font-size: 13px; font-weight: 600; line-height: 1.3; }
-    .perfil-box p { font-size: 11px; color: #a0aec0; margin-top: 2px; }
-    .sidebar-nav { padding: 15px 12px; flex-grow: 1; overflow-y: auto; }
-    .nav-label { font-size: 10px; text-transform: uppercase; color: #63b3ed; font-weight: 700; letter-spacing: 1px; padding: 0 8px; margin-bottom: 8px; margin-top: 12px; }
-    .nav-btn { width: 100%; padding: 10px 14px; background: transparent; border: none; color: #cbd5e0; text-align: left; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-bottom: 3px; transition: all 0.15s; display: flex; align-items: center; gap: 10px; }
-    .nav-btn:hover { background: rgba(255,255,255,0.08); color: white; }
-    .nav-btn.activo { background: rgba(255,255,255,0.15); color: white; font-weight: 600; }
-    .sidebar-footer { padding: 15px 20px; border-top: 1px solid rgba(255,255,255,0.08); }
-    .btn-salir { width: 100%; padding: 9px; background: rgba(245,101,101,0.15); color: #fc8181; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
-    .btn-salir:hover { background: #e53e3e; color: white; }
-
-    .main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .topbar { background: white; padding: 16px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
-    .topbar h1 { font-size: 20px; color: #1a202c; }
-    .topbar p { font-size: 13px; color: #718096; margin-top: 2px; }
-    .topbar-actions { display: flex; gap: 10px; }
-    .btn-primary { background: #2b6cb0; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
-    .btn-primary:hover { background: #2c5282; }
-    .content-area { flex-grow: 1; overflow-y: auto; padding: 0; display: flex; flex-direction: column; }
-
-    .lista-container { padding: 25px 30px; flex-grow: 1; }
-    .lista-titulo { font-size: 15px; font-weight: 700; color: #2d3748; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; }
-    .pac-card { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; }
-    .pac-card:hover { border-color: #90cdf4; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    .pac-card strong { font-size: 15px; color: #1a202c; }
-    .pac-card p { font-size: 12px; color: #718096; margin-top: 3px; }
-    .pac-card .btn-abrir { background: #ebf8ff; color: #2b6cb0; border: none; padding: 7px 16px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer; }
-
-    #vista-expediente { display: none; flex-direction: column; flex-grow: 1; overflow: hidden; }
-    #vista-expediente.visible { display: flex; }
-    .ficha { background: #1a365d; color: white; padding: 16px 30px; display: flex; gap: 30px; flex-wrap: wrap; flex-shrink: 0; }
-    .ficha-group { display: flex; flex-direction: column; }
-    .ficha-group .fl { font-size: 9px; text-transform: uppercase; color: #90cdf4; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 2px; }
-    .ficha-group .fv { font-size: 13px; font-weight: 600; }
-
-    .exp-tabs { display: flex; background: white; border-bottom: 2px solid #e2e8f0; padding: 0 30px; flex-shrink: 0; }
-    .exp-tab { padding: 14px 22px; font-size: 13px; font-weight: 600; color: #718096; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.15s; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-    .exp-tab:hover { color: #2d3748; background: #f7fafc; }
-    .exp-tab.activo { color: #2b6cb0; border-bottom-color: #2b6cb0; }
-
-    .timeline-section { background: #edf2f7; padding: 18px 30px; flex-shrink: 0; border-bottom: 1px solid #e2e8f0; }
-    .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .timeline-header h3 { font-size: 13px; color: #4a5568; font-weight: 700; }
-    .timeline-header span { font-size: 11px; color: #a0aec0; }
-    .timeline-track { display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding: 8px 0 12px; scroll-behavior: smooth; }
-    .timeline-track::-webkit-scrollbar { height: 4px; }
-    .timeline-track::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
-    .tl-item { display: flex; flex-direction: column; align-items: center; min-width: 110px; cursor: pointer; position: relative; padding: 0 5px; }
-    .tl-date { font-size: 10px; color: #718096; font-weight: 600; margin-bottom: 8px; }
-    .tl-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: white; transition: transform 0.15s, box-shadow 0.15s; position: relative; z-index: 2; }
-    .tl-circle:hover { transform: scale(1.12); }
-    .tl-item.selected .tl-circle { box-shadow: 0 0 0 4px rgba(43,108,176,0.3); transform: scale(1.12); }
-    .tl-label { font-size: 10px; color: #4a5568; font-weight: 600; margin-top: 6px; text-align: center; max-width: 100px; line-height: 1.3; }
-    .tl-author { font-size: 9px; color: #a0aec0; text-align: center; margin-top: 2px; }
-    .tl-tipo { font-size: 8px; color: #718096; text-align: center; margin-top: 1px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .tl-item:not(:last-child)::after { content:''; position:absolute; top:30px; left:calc(50% + 22px); width:calc(100% - 44px); border-top:2px dashed #cbd5e0; z-index:1; }
-
-    .bg-primera { background: #2b6cb0; }
-    .bg-evolucion { background: #dd6b20; }
-    .bg-urgencias { background: #e53e3e; }
-    .bg-enfermeria { background: #38a169; }
-    .bg-add { background: #4a5568; border: 2px dashed #a0aec0; color: #a0aec0; }
-
-    .detail-panel { flex-grow: 1; overflow-y: auto; background: white; }
-    .detail-inner { padding: 25px 30px; }
-    .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #edf2f7; }
-    .detail-header h2 { font-size: 18px; color: #1a202c; }
-    .detail-header p { font-size: 12px; color: #718096; margin-top: 4px; }
-    .detail-badge { font-size: 10px; font-family: monospace; background: #edf2f7; padding: 4px 8px; border-radius: 4px; color: #4a5568; }
-    .detail-section { margin-bottom: 18px; }
-    .detail-section h4 { font-size: 12px; color: #2b6cb0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .detail-section p { font-size: 14px; color: #2d3748; line-height: 1.6; }
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-
-    .tabla-simple { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .tabla-simple th { background: #edf2f7; padding: 10px 12px; text-align: left; font-size: 11px; color: #4a5568; text-transform: uppercase; font-weight: 700; }
-    .tabla-simple td { padding: 10px 12px; border-bottom: 1px solid #edf2f7; font-size: 13px; color: #2d3748; }
-
-    .integridad-ok { background: #c6f6d5; color: #22543d; padding: 15px; border-radius: 8px; font-weight: 700; text-align: center; }
-    .integridad-error { background: #fed7d7; color: #742a2a; padding: 15px; border-radius: 8px; font-weight: 700; text-align: center; }
-    .empty-state { text-align: center; padding: 60px 20px; color: #a0aec0; }
-    .empty-state span { font-size: 48px; display: block; margin-bottom: 12px; }
-
-    /* MODALES */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-overlay.visible { display: flex; }
-    .modal-content { background: white; padding: 28px; border-radius: 12px; width: 750px; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
-    .modal-content h2 { margin-bottom: 6px; color: #1a365d; font-size: 18px; }
-    .modal-subtitle { font-size: 11px; color: #e53e3e; margin-bottom: 18px; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .form-group { display: flex; flex-direction: column; }
-    .form-group.full { grid-column: span 2; }
-    .form-group label { font-size: 11px; font-weight: 700; color: #4a5568; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
-    .form-group input, .form-group select, .form-group textarea { padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-family: inherit; font-size: 13px; transition: border-color 0.15s; }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #2b6cb0; outline: none; }
-    .form-group textarea { resize: vertical; min-height: 70px; }
-    .btn-guardar { background: #2b6cb0; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 700; margin-top: 16px; width: 100%; font-size: 14px; }
-    .btn-guardar:hover { background: #2c5282; }
-    .btn-guardar:disabled { background: #a0aec0; cursor: not-allowed; }
-    .btn-cancelar { background: #edf2f7; color: #4a5568; border: none; padding: 11px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 8px; width: 100%; font-size: 13px; }
-    .error-modal { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; }
-
-    .firma-container { border: 2px dashed #cbd5e0; border-radius: 8px; padding: 4px; margin-top: 4px; position: relative; background: #fafafa; }
-    .firma-container canvas { width: 100%; height: 90px; cursor: crosshair; display: block; }
-    .btn-limpiar-firma { position: absolute; top: 4px; right: 4px; background: #e53e3e; color: white; border: none; border-radius: 4px; padding: 2px 8px; font-size: 10px; cursor: pointer; }
-    .firmas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
-    .firma-block label { font-size: 11px; font-weight: 700; color: #4a5568; margin-bottom: 4px; display: block; }
-    .firma-block input { width: 100%; padding: 8px 10px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 13px; margin-bottom: 6px; }
-
-    /* CIE-10 multi-select */
-    .cie10-container { position: relative; }
-    .cie10-selected { display: flex; flex-wrap: wrap; gap: 4px; min-height: 38px; padding: 6px 10px; border: 1.5px solid #e2e8f0; border-radius: 6px; cursor: text; background: white; }
-    .cie10-selected:focus-within { border-color: #2b6cb0; }
-    .cie10-tag { background: #ebf8ff; color: #2b6cb0; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
-    .cie10-tag .remove { cursor: pointer; font-size: 14px; line-height: 1; color: #e53e3e; }
-    .cie10-search { border: none; outline: none; font-size: 13px; flex: 1; min-width: 120px; padding: 2px; }
-    .cie10-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1.5px solid #e2e8f0; border-radius: 0 0 6px 6px; max-height: 250px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
-    .cie10-dropdown.open { display: block; }
-    .cie10-chapter { font-size: 10px; font-weight: 700; color: #2b6cb0; padding: 8px 12px 4px; text-transform: uppercase; background: #f7fafc; border-top: 1px solid #edf2f7; }
-    .cie10-option { padding: 6px 12px; font-size: 12px; cursor: pointer; display: flex; justify-content: space-between; }
-    .cie10-option:hover { background: #ebf8ff; }
-    .cie10-option.selected { background: #bee3f8; }
-    .cie10-option .code { font-weight: 700; color: #2b6cb0; margin-right: 8px; }
-    .tipo-nota-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-  </style>
+  <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
 
   <div class="sidebar">
     <div class="sidebar-header"><span>🏥</span> Villas Juan Pablo</div>
     <div class="perfil-box" id="perfil-paciente">
-      <div class="perfil-row">
-        <div class="avatar">?</div>
-        <div><h4>Seleccione Paciente</h4><p>Busque un paciente</p></div>
-      </div>
+      <div class="perfil-row"><div class="avatar">?</div><div><h4>Seleccione Paciente</h4><p>Busque un paciente</p></div></div>
     </div>
-
-    <div class="sidebar-nav" id="sidebar-nav">
-      <div class="nav-label">Navegación</div>
-      <button class="nav-btn activo" onclick="mostrarListaPacientes()">📋 Listado de Pacientes</button>
-    </div>
-
+    <div class="sidebar-nav" id="sidebar-nav"><div class="nav-label">Navegación</div><button class="nav-btn activo" onclick="mostrarListaPacientes()">📋 Listado de Pacientes</button></div>
     <div class="sidebar-nav" id="acciones-exp" style="display:none;">
       <div class="nav-label">Notas Clínicas NOM-004</div>
       <div id="btns-notas-medico">
@@ -163,28 +21,27 @@
         <button class="nav-btn" onclick="abrirModalNotaTipo('urgencias')">🚑 Nota de Urgencias</button>
       </div>
       <button id="btn-nota-enfermeria" class="nav-btn" onclick="abrirModalNotaTipo('enfermeria')">👩‍⚕️ Nota de Enfermería</button>
-
       <div id="btns-solo-medico">
-        <div class="nav-label" style="margin-top:16px;">Otros Documentos</div>
+        <div class="nav-label" style="margin-top:20px;">Otros Documentos</div>
         <button class="nav-btn" onclick="abrirModal('modal-consentimiento')">✍️ Consentimiento Informado</button>
         <button class="nav-btn" onclick="abrirModal('modal-receta')">💊 Receta Médica</button>
-
-        <div class="nav-label" style="margin-top:16px;">Herramientas</div>
+        <div class="nav-label" style="margin-top:20px;">Herramientas</div>
         <button class="nav-btn" onclick="exportarExpediente()">📦 Exportar Expediente</button>
-        <button class="nav-btn" onclick="verificarIntegridad()">🔒 Verificar Integridad</button>
       </div>
-      <button class="nav-btn" onclick="mostrarListaPacientes()">← Volver al Listado</button>
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05);">
+        <button class="nav-btn" onclick="mostrarListaPacientes()">← Volver al Listado</button>
+      </div>
     </div>
-
+    
     <div class="sidebar-footer">
-      <div id="admin-sidebar" style="display:none; margin-bottom:10px;">
+      <div id="admin-sidebar" style="display:none; margin-bottom:16px;">
         <div class="nav-label">Administración</div>
         <button class="nav-btn" onclick="abrirModal('modal-crear-usuario')">👤 Crear Usuario</button>
-        <button class="nav-btn" onclick="abrirGestionUsuarios()">🔑 Gestión de Usuarios</button>
+        <button class="nav-btn" onclick="abrirModalGestionUsuarios()">👥 Gestionar Usuarios</button>
       </div>
       <button class="btn-salir" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
     </div>
-  </div>
+  </div> 
 
   <div class="main">
     <div class="topbar">
@@ -193,23 +50,22 @@
         <p>Expediente clínico electrónico · NOM-004 / NOM-024</p>
       </div>
       <div class="topbar-actions">
-        <button class="btn-primary" id="btn-reg-paciente" onclick="abrirModal('modal-paciente')">+ Registrar Paciente</button>
+        <button class="btn-primary" id="btn-reg-paciente" onclick="abrirModal('modal-paciente')">
+          <span style="font-size:16px; font-weight:bold;">+</span> Registrar Paciente
+        </button>
       </div>
     </div>
-
     <div class="content-area">
       <div class="lista-container" id="lista-pacientes-container">
         <div class="lista-titulo">Pacientes Recientes</div>
         <div id="contenedor-tarjetas"></div>
       </div>
-
       <div id="vista-expediente">
         <div class="ficha" id="ficha-identificacion"></div>
         <div class="exp-tabs" id="exp-tabs">
           <div class="exp-tab activo" id="tab-notas" data-tab="notas" onclick="cambiarTab('notas')">📋 Notas Clínicas</div>
           <div class="exp-tab" id="tab-consentimientos" data-tab="consentimientos" onclick="cambiarTab('consentimientos')">✍️ Consentimientos</div>
           <div class="exp-tab" id="tab-recetas" data-tab="recetas" onclick="cambiarTab('recetas')">💊 Recetas</div>
-          <div class="exp-tab" id="tab-auditoria" data-tab="auditoria" onclick="cambiarTab('auditoria')">🔒 Auditoría</div>
         </div>
         <div class="timeline-section" id="timeline-section">
           <div class="timeline-header">
@@ -226,888 +82,175 @@
   </div>
 
   <div class="modal-overlay" id="modal-paciente">
-    <div class="modal-content">
-      <h2>Registrar Nuevo Paciente</h2>
-      <p style="font-size:11px; color:#718096; margin-bottom:16px;">Datos obligatorios según NOM-004</p>
+    <div class="modal-content large">
+      <h2>Ficha de Identificación del Paciente (NOM-004)</h2>
+      <p class="modal-subtitle">Datos obligatorios sin abreviaturas (máx. 50 caracteres). Se auto-formatearán a mayúsculas.</p>
       <div class="error-modal" id="error-paciente"></div>
-      <div class="form-grid">
-        <div class="form-group"><label>Folio Interno</label><input type="text" id="pac-folio" placeholder="EXP-001"></div>
-        <div class="form-group"><label>CURP (18 caracteres)</label><input type="text" id="pac-curp" maxlength="18" style="text-transform:uppercase;"></div>
-        <div class="form-group"><label>Nombre(s)</label><input type="text" id="pac-nombre"></div>
-        <div class="form-group"><label>Primer Apellido</label><input type="text" id="pac-paterno"></div>
-        <div class="form-group"><label>Segundo Apellido</label><input type="text" id="pac-materno"></div>
-        <div class="form-group"><label>Fecha Nacimiento (AAAAMMDD)</label><input type="text" id="pac-fecha" maxlength="8" placeholder="19500524"></div>
-        <div class="form-group"><label>Sexo Biológico</label><select id="pac-sexo"><option value="H">Hombre</option><option value="M">Mujer</option></select></div>
+      
+      <div class="form-grid tres-cols">
+        <div class="form-group"><label>Folio Interno / Exp *</label><input type="text" id="pac-folio" maxlength="18"></div>
+        <div class="form-group"><label>CURP (18 car.) *</label><input type="text" id="pac-curp" maxlength="18"></div>
+        <div class="form-group"><label>Nacionalidad (Clave) *</label><input type="text" id="pac-nacionalidad" value="MEX" maxlength="3"></div>
+        
+        <div class="form-group"><label>Nombre(s) *</label><input type="text" id="pac-nombre" maxlength="50"></div>
+        <div class="form-group"><label>Primer Apellido *</label><input type="text" id="pac-paterno" maxlength="50"></div>
+        <div class="form-group"><label>Segundo Apellido</label><input type="text" id="pac-materno" maxlength="50"></div>
+        
+        <div class="form-group"><label>Nacimiento * (AAAAMMDD)</label><input type="text" id="pac-fecha" maxlength="8" placeholder="19580919"></div>
+        <div class="form-group"><label>Sexo Biológico *</label><select id="pac-sexo"><option value="H">Hombre</option><option value="M">Mujer</option></select></div>
+        <div class="form-group"><label>Entidad Nacimiento *</label><select id="pac-edonac"><option value="01" selected>Aguascalientes</option><option value="00">No Disponible (00)</option></select></div>
+        
+        <div class="form-group"><label>Estado Residencia (Clave)</label><input type="text" id="pac-edores" maxlength="2" value="01"></div>
+        <div class="form-group"><label>Municipio Residencia (Clave)</label><input type="text" id="pac-munres" maxlength="3" value="001"></div>
+        <div class="form-group"><label>Localidad Residencia (Clave)</label><input type="text" id="pac-locres" maxlength="4" value="0001"></div>
+        
+        <div class="form-group"><label>Lugar de Origen</label><input type="text" id="pac-origen" placeholder="AGUASCALIENTES"></div>
+        <div class="form-group"><label>Lugar de Residencia</label><input type="text" id="pac-residencia" placeholder="AGUASCALIENTES"></div>
+        <div class="form-group"><label>Estado Civil</label><input type="text" id="pac-estado-civil"></div>
+        
+        <div class="form-group full"><label>Domicilio</label><input type="text" id="pac-domicilio" placeholder="CALLE, NUMERO, COLONIA, MUNICIPIO"></div>
+        
+        <div class="form-group"><label>Escolaridad</label><input type="text" id="pac-escolaridad"></div>
+        <div class="form-group"><label>Religión</label><input type="text" id="pac-religion"></div>
+        <div class="form-group"><label>Ocupación</label><input type="text" id="pac-ocupacion"></div>
+        
+        <div class="form-group"><label>Teléfono Personal</label><input type="text" id="pac-telefono"></div>
+        <div class="form-group"><label>Lateralidad</label><select id="pac-lateralidad"><option value="DIESTRO">Diestro</option><option value="ZURDO">Zurdo</option><option value="AMBIDIESTRO">Ambidiestro</option></select></div>
+        <div class="form-group"><label>Cama</label><input type="text" id="pac-cama"></div>
+
+        <div class="form-group full" style="border-top:2px solid var(--bg); padding-top:20px; margin-top:10px;"><label style="color:var(--danger); font-size:14px;">En caso de urgencia localizar a:</label></div>
+        <div class="form-group full"><label>Nombre del Familiar / Vínculo</label><input type="text" id="pac-em-nombre"></div>
+        <div class="form-group"><label>Teléfono de Urgencia</label><input type="text" id="pac-em-telefono"></div>
       </div>
-      <button class="btn-guardar" onclick="guardarPaciente()">Guardar Paciente</button>
+
+      <button class="btn-guardar" id="btn-submit-paciente" onclick="guardarPaciente()">Guardar Paciente</button>
       <button class="btn-cancelar" onclick="cerrarModal('modal-paciente')">Cancelar</button>
     </div>
   </div>
 
+  <div class="modal-overlay" id="modal-selector-nota">
+    <div class="modal-content" style="width: 450px; text-align: center;">
+      <h2 style="margin-bottom: 20px;">Selecciona el Tipo de Nota</h2>
+      <button class="btn-guardar" style="margin-top:0; margin-bottom:12px; background:linear-gradient(135deg, #2b6cb0, #1e40af);" onclick="abrirModalNotaTipo('primera_vez'); cerrarModal('modal-selector-nota');">📄 Nota de Primera Vez</button>
+      <button class="btn-guardar" style="margin-top:0; margin-bottom:12px; background:linear-gradient(135deg, #dd6b20, #b45309);" onclick="abrirModalNotaTipo('evolucion'); cerrarModal('modal-selector-nota');">📝 Nota de Evolución</button>
+      <button class="btn-guardar" style="margin-top:0; margin-bottom:24px; background:linear-gradient(135deg, #e53e3e, #b91c1c);" onclick="abrirModalNotaTipo('urgencias'); cerrarModal('modal-selector-nota');">🚑 Nota de Urgencias</button>
+      <button class="btn-cancelar" onclick="cerrarModal('modal-selector-nota')">Cancelar</button>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-nota">
-    <div class="modal-content" style="width:800px;">
+    <div class="modal-content large">
       <h2 id="modal-nota-titulo">📝 Nueva Nota Clínica</h2>
-      <p class="modal-subtitle">⚠️ Una vez guardada, esta nota NO podrá ser modificada ni eliminada (NOM-024)</p>
+      <p class="modal-subtitle">⚠️ Una vez guardada se sella criptográficamente. Podrás imprimir y firmar en papel.</p>
       <div class="error-modal" id="error-nota"></div>
       <input type="hidden" id="nota-tipo" value="evolucion">
 
       <div id="campos-dinamicos-nota"></div>
 
-      <div style="margin-top:14px;">
-        <label style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.3px; margin-bottom:4px; display:block;">Diagnóstico(s) CIE-10 *</label>
+      <div style="margin-top:20px; background:var(--bg); padding:20px; border-radius:12px; border:1px solid var(--border);">
+        <label style="font-size:13px; font-weight:800; color:var(--primary); text-transform:uppercase; margin-bottom:12px; display:block; letter-spacing:0.5px;">Diagnóstico(s) CIE-10 *</label>
         <div class="cie10-container" id="cie10-container">
-          <div class="cie10-selected" id="cie10-selected" onclick="document.getElementById('cie10-search').focus()">
-            <input type="text" class="cie10-search" id="cie10-search" placeholder="Buscar código CIE-10..." oninput="filtrarCIE10(this.value)" onfocus="abrirDropdownCIE10()">
-          </div>
+          <div class="cie10-selected" id="cie10-selected" onclick="document.getElementById('cie10-search').focus()"><input type="text" class="cie10-search" id="cie10-search" placeholder="Buscar código CIE-10..." oninput="filtrarCIE10(this.value)" onfocus="abrirDropdownCIE10()"></div>
           <div class="cie10-dropdown" id="cie10-dropdown"></div>
         </div>
       </div>
 
-      <div class="form-grid" style="margin-top:14px;">
-        <div class="form-group full"><label>Plan de Tratamiento / Indicaciones</label><textarea id="nota-plan" placeholder="Plan terapéutico"></textarea></div>
-        <div class="form-group full">
-          <label>Firma del Profesional</label>
+      <div class="form-grid" style="margin-top:20px;">
+        <div class="form-group full"><label>Terapéutica Empleada / Plan de Tratamiento *</label><textarea id="nota-plan" style="text-transform:none;"></textarea></div>
+        
+        <div class="form-group" style="padding-right:20px; border-right: 1px solid var(--border);">
+          <label>Firma Autógrafa (Opcional - Dejar en blanco para firmar en papel)</label>
           <div class="firma-container"><canvas id="firma-nota-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-nota-canvas')">Limpiar</button></div>
         </div>
+        <div class="form-group" style="padding-left:20px;">
+          <label style="color:var(--primary);">Firma Electrónica e.firma (Opcional)</label>
+          <input type="text" id="nota-firma-electronica" placeholder="Sello criptográfico..." style="text-transform:none;">
+        </div>
       </div>
-      <button class="btn-guardar" onclick="guardarNota()">Firmar y Guardar Nota</button>
+      <button class="btn-guardar" id="btn-submit-nota" onclick="guardarNota()">Guardar Nota Definitiva</button>
       <button class="btn-cancelar" onclick="cerrarModal('modal-nota')">Cancelar</button>
     </div>
   </div>
 
   <div class="modal-overlay" id="modal-consentimiento">
-    <div class="modal-content" style="width:800px;">
+    <div class="modal-content large">
       <h2>✍️ Consentimiento Informado</h2>
-      <p class="modal-subtitle">⚠️ Requiere firma del paciente + 2 testigos + médico para validez legal</p>
+      <p class="modal-subtitle">Las firmas son opcionales aquí; el PDF generará el espacio para recabar las firmas físicas.</p>
       <div class="error-modal" id="error-consentimiento"></div>
       <div class="form-grid">
-        <div class="form-group"><label>Tipo de Procedimiento *</label><input type="text" id="cons-tipo"></div>
-        <div class="form-group"><label>Riesgos *</label><input type="text" id="cons-riesgos"></div>
-        <div class="form-group full"><label>Descripción del Procedimiento *</label><textarea id="cons-descripcion"></textarea></div>
-        <div class="form-group"><label>Beneficios</label><input type="text" id="cons-beneficios"></div>
-        <div class="form-group"><label>Alternativas</label><input type="text" id="cons-alternativas"></div>
+        <div class="form-group"><label>Procedimiento *</label><input type="text" id="cons-tipo"></div>
+        <div class="form-group"><label>Riesgos *</label><input type="text" id="cons-riesgos" style="text-transform:none;"></div>
+        <div class="form-group full"><label>Descripción *</label><textarea id="cons-descripcion" style="text-transform:none;"></textarea></div>
+        <div class="form-group"><label>Beneficios</label><input type="text" id="cons-beneficios" style="text-transform:none;"></div>
+        <div class="form-group"><label>Alternativas</label><input type="text" id="cons-alternativas" style="text-transform:none;"></div>
       </div>
-      <h3 style="margin:18px 0 8px; color:#1a365d; font-size:13px; border-top:2px solid #edf2f7; padding-top:14px;">Firmas Requeridas (4)</h3>
+      <h3 style="margin:24px 0 12px; color:var(--text-main); font-size:15px; font-weight:800; border-top:2px solid var(--bg); padding-top:20px;">Firmas (Opcionales para el sistema, obligatorias en papel)</h3>
       <div class="firmas-grid">
-        <div class="firma-block"><label>Nombre del Paciente *</label><input type="text" id="cons-nombre-paciente"><label>Firma del Paciente *</label><div class="firma-container"><canvas id="firma-paciente-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-paciente-canvas')">Limpiar</button></div></div>
-        <div class="firma-block"><label>Médico Tratante</label><div class="firma-container" style="margin-top:28px;"><canvas id="firma-medico-cons-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-medico-cons-canvas')">Limpiar</button></div></div>
-        <div class="firma-block"><label>Nombre Testigo 1 *</label><input type="text" id="cons-nombre-testigo1"><label>Firma Testigo 1 *</label><div class="firma-container"><canvas id="firma-testigo1-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-testigo1-canvas')">Limpiar</button></div></div>
-        <div class="firma-block"><label>Nombre Testigo 2 *</label><input type="text" id="cons-nombre-testigo2"><label>Firma Testigo 2 *</label><div class="firma-container"><canvas id="firma-testigo2-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-testigo2-canvas')">Limpiar</button></div></div>
+        <div class="firma-block"><label>Paciente *</label><input type="text" id="cons-nombre-paciente"><div class="firma-container"><canvas id="firma-paciente-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-paciente-canvas')">Limpiar</button></div></div>
+        <div class="firma-block"><label>Médico Tratante</label><div class="firma-container" style="margin-top:34px;"><canvas id="firma-medico-cons-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-medico-cons-canvas')">Limpiar</button></div></div>
+        <div class="firma-block"><label>Testigo 1 *</label><input type="text" id="cons-nombre-testigo1"><div class="firma-container"><canvas id="firma-testigo1-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-testigo1-canvas')">Limpiar</button></div></div>
+        <div class="firma-block"><label>Testigo 2 *</label><input type="text" id="cons-nombre-testigo2"><div class="firma-container"><canvas id="firma-testigo2-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-testigo2-canvas')">Limpiar</button></div></div>
       </div>
-      <button class="btn-guardar" onclick="guardarConsentimiento()">Firmar y Guardar Consentimiento</button>
+      <button class="btn-guardar" id="btn-submit-consentimiento" onclick="guardarConsentimiento()">Guardar Consentimiento</button>
       <button class="btn-cancelar" onclick="cerrarModal('modal-consentimiento')">Cancelar</button>
     </div>
   </div>
 
   <div class="modal-overlay" id="modal-receta">
-    <div class="modal-content">
-      <h2>💊 Receta Médica</h2>
+    <div class="modal-content large">
+      <h2>💊 Receta Médica (Cumplimiento LGS Art. 226)</h2>
+      <p class="modal-subtitle">Se imprimirá con membrete y Cédula Profesional. Firma opcional en sistema.</p>
       <div class="error-modal" id="error-receta"></div>
       <div class="form-grid">
-        <div class="form-group full"><label>Diagnóstico *</label><input type="text" id="receta-diagnostico"></div>
+        <div class="form-group full"><label>Diagnóstico *</label><input type="text" id="receta-diagnostico" style="text-transform:none;"></div>
         <div class="form-group"><label>Tipo de Receta</label><select id="receta-tipo"><option value="general">Medicamento General</option><option value="antibiotico">Antibiótico (requiere retención)</option></select></div>
-        <div class="form-group"><p style="font-size:11px; color:#e53e3e; margin-top:20px;">⚠️ Antibióticos requieren firma autógrafa original</p></div>
-        <div class="form-group full"><label>Medicamentos *</label><textarea id="receta-medicamentos" placeholder="Medicamento - Dosis - Vía - Frecuencia - Duración"></textarea></div>
-        <div class="form-group full"><label>Indicaciones</label><textarea id="receta-indicaciones"></textarea></div>
-        <div class="form-group full"><label>Firma del Médico</label><div class="firma-container"><canvas id="firma-receta-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-receta-canvas')">Limpiar</button></div></div>
+        <div class="form-group"><p style="font-size:12px; color:var(--danger); font-weight:600; margin-top:24px;">⚠️ Los antibióticos imprimen la leyenda de retención en farmacia.</p></div>
+        
+        <div class="form-group full">
+          <label>Medicamentos * (Denominación Genérica, Dosis, Presentación, Vía, Frecuencia y Duración)</label>
+          <textarea id="receta-medicamentos" style="text-transform:none;" placeholder="Ej: Paracetamol 500mg, Tableta, Vía Oral, 1 tableta cada 8 horas por 5 días."></textarea>
+        </div>
+        <div class="form-group full"><label>Indicaciones Adicionales</label><textarea id="receta-indicaciones" style="text-transform:none;"></textarea></div>
+        
+        <div class="form-group full"><label>Firma del Médico (Dejar en blanco para firmar con pluma)</label>
+          <div class="firma-container" style="width: 50%;"><canvas id="firma-receta-canvas"></canvas><button class="btn-limpiar-firma" onclick="limpiarCanvas('firma-receta-canvas')">Limpiar</button></div>
+        </div>
       </div>
-      <button class="btn-guardar" onclick="guardarReceta()">Firmar y Emitir Receta</button>
+      <button class="btn-guardar" id="btn-submit-receta" onclick="guardarReceta()">Guardar Receta</button>
       <button class="btn-cancelar" onclick="cerrarModal('modal-receta')">Cancelar</button>
     </div>
   </div>
 
   <div class="modal-overlay" id="modal-crear-usuario">
-    <div class="modal-content" style="width:480px;">
-      <h2>👤 Crear Nuevo Usuario</h2>
-      <p style="font-size:11px; color:#718096; margin-bottom:16px;">Solo Médico y Administrador pueden registrar cuentas.</p>
+    <div class="modal-content" style="width:550px;">
+      <h2>👤 Crear Usuario</h2>
+      <p class="modal-subtitle">Agrega personal de salud al sistema.</p>
       <div class="error-modal" id="error-crear-usuario"></div>
       <div class="form-grid">
-        <div class="form-group full"><label>Nombre Completo *</label><input type="text" id="cu-nombre" placeholder="Nombre completo"></div>
-        <div class="form-group">
-          <label>Título / Rol *</label>
-          <select id="cu-titulo">
-            <option value="" disabled selected>Seleccionar...</option>
-            <option value="Dr.">Dr. (Médico)</option>
-            <option value="Dra.">Dra. (Médica)</option>
-            <option value="Lic.">Lic. (Enfermería)</option>
-            <option value="Secretaria">Secretaria</option>
-            <option value="Sr.">Sr. (Otro)</option>
-            <option value="Sra.">Sra. (Otro)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Sexo *</label>
-          <select id="cu-sexo">
-            <option value="" disabled selected>Seleccionar...</option>
-            <option value="M">Masculino</option>
-            <option value="F">Femenino</option>
-          </select>
-        </div>
-        <div class="form-group full" id="cu-campo-cedula" style="display:none;">
-          <label>Cédula Profesional *</label><input type="text" id="cu-cedula" placeholder="Número de cédula">
-        </div>
-        <div class="form-group full"><label>Nombre de Usuario *</label><input type="text" id="cu-usuario" placeholder="usuario.apellido"></div>
-        <div class="form-group"><label>Contraseña * (mín. 8 caracteres, 1 letra, 1 número)</label><input type="password" id="cu-password"></div>
-        <div class="form-group"><label>Confirmar Contraseña *</label><input type="password" id="cu-confirmar"></div>
+        <div class="form-group full"><label>Nombre Completo *</label><input type="text" id="cu-nombre"></div>
+        <div class="form-group"><label>Título *</label><select id="cu-titulo"><option value="" disabled selected>Seleccionar...</option><option value="Dr.">Dr.</option><option value="Lic.">Lic.</option><option value="Enf.">Enf.</option></select></div>
+        <div class="form-group"><label>Rol *</label><select id="cu-rol"><option value="Médico">Médico</option><option value="Enfermería">Enfermería</option><option value="Secretaria">Secretaria</option><option value="Admin">Administrador</option></select></div>
+        <div class="form-group"><label>Sexo *</label><select id="cu-sexo"><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
+        <div class="form-group full" id="cu-campo-cedula" style="display:none;"><label>Cédula *</label><input type="text" id="cu-cedula"></div>
+        <div class="form-group full"><label>Usuario *</label><input type="text" id="cu-usuario" style="text-transform:none;"></div>
+        <div class="form-group"><label>Contraseña *</label><input type="password" id="cu-password" style="text-transform:none;"></div>
+        <div class="form-group"><label>Confirmar *</label><input type="password" id="cu-confirmar" style="text-transform:none;"></div>
       </div>
       <button class="btn-guardar" id="btn-crear-usuario" onclick="crearUsuario()">Crear Usuario</button>
       <button class="btn-cancelar" onclick="cerrarModal('modal-crear-usuario')">Cancelar</button>
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-gestion-usuarios">
-    <div class="modal-content" style="width:780px; max-height:85vh; overflow-y:auto;">
-      <h2>🔑 Gestión de Usuarios</h2>
-      <p style="font-size:11px; color:#718096; margin-bottom:16px;">Aprueba solicitudes de registro y gestiona usuarios del sistema.</p>
-      <div id="gestion-pendientes">
-        <h3 style="font-size:14px; color:#e53e3e; margin-bottom:10px;">⏳ Cuentas Pendientes de Aprobación</h3>
-        <div id="lista-pendientes"><p style="color:#a0aec0; font-size:13px;">Cargando...</p></div>
-      </div>
-      <hr style="margin:20px 0; border-color:#e2e8f0;">
-      <div id="gestion-activos">
-        <h3 style="font-size:14px; color:#2b6cb0; margin-bottom:10px;">✅ Usuarios Activos</h3>
-        <div id="lista-activos"><p style="color:#a0aec0; font-size:13px;">Cargando...</p></div>
-      </div>
-      <button class="btn-cancelar" style="margin-top:16px;" onclick="cerrarModal('modal-gestion-usuarios')">Cerrar</button>
+  <div class="modal-overlay" id="modal-gestionar-usuarios">
+    <div class="modal-content large">
+      <h2>👥 Gestión y Aprobación de Usuarios</h2>
+      <p class="modal-subtitle">Aquí puedes aprobar cuentas nuevas y cambiar roles.</p>
+      <div id="tabla-usuarios-container" style="margin-top: 15px; max-height: 450px; overflow-y: auto;">
+        </div>
+      <button class="btn-cancelar" style="margin-top: 24px;" onclick="cerrarModal('modal-gestionar-usuarios')">Cerrar Panel</button>
     </div>
   </div>
 
-  <script>
-    function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
-
-    let folioActivo = null;
-    let tabActivo = 'notas';
-    let notasCache = [];
-    let notaSeleccionada = null;
-    let cie10Seleccionados = [];
-
-    // CIE-10 catalog is loaded from cie10_catalogo.js via preload (window.CIE10_CATALOGO)
-
-    // ══════════════════════════════════════════════════
-    //  CAMPOS POR TIPO DE NOTA (NOM-004)
-    // ══════════════════════════════════════════════════
-
-    const CAMPOS_POR_TIPO = {
-      primera_vez: {
-        titulo: '📄 Nota de Primera Vez',
-        campos: `
-          <div class="form-grid">
-            <div class="form-group full"><label>Motivo de Consulta / Padecimiento Actual *</label><textarea id="nota-motivo" placeholder="Motivo de consulta y padecimiento actual"></textarea></div>
-            <div class="form-group full"><label>Antecedentes Heredo-Familiares</label><textarea id="extra-ahf" placeholder="Diabetes, hipertensión, cáncer, cardiopatías en familiares directos..."></textarea></div>
-            <div class="form-group full"><label>Antecedentes Personales No Patológicos</label><textarea id="extra-apnp" placeholder="Vivienda, alimentación, higiene, inmunizaciones, actividad física, tabaquismo, alcoholismo, toxicomanías..."></textarea></div>
-            <div class="form-group full"><label>Antecedentes Personales Patológicos</label><textarea id="extra-app" placeholder="Enfermedades previas, cirugías, hospitalizaciones, transfusiones, alergias, traumatismos..."></textarea></div>
-            <div class="form-group full"><label>Antecedentes Gineco-Obstétricos (si aplica)</label><textarea id="extra-ago" placeholder="Menarca, ritmo, FUM, G P A C, FUP, MPF..."></textarea></div>
-            <div class="form-group full"><label>Interrogatorio por Aparatos y Sistemas</label><textarea id="extra-ipas" placeholder="Respiratorio, cardiovascular, digestivo, urinario, musculoesquelético, nervioso, endocrino, piel..."></textarea></div>
-            <div class="form-group full"><label>Exploración Física *</label><textarea id="nota-exploracion" placeholder="Signos vitales: TA, FC, FR, Temp, SpO2, Peso, Talla, IMC. Habitus exterior. Exploración por regiones..."></textarea></div>
-            <div class="form-group"><label>Pronóstico</label><input type="text" id="extra-pronostico" placeholder="Bueno / Reservado / Malo"></div>
-          </div>`
-      },
-      evolucion: {
-        titulo: '📝 Nota de Evolución',
-        campos: `
-          <div class="form-grid">
-            <div class="form-group full"><label>Evolución / Estado Actual *</label><textarea id="nota-motivo" placeholder="Evolución del padecimiento, estado actual del paciente, respuesta al tratamiento..."></textarea></div>
-            <div class="form-group full"><label>Signos Vitales y Exploración Física</label><textarea id="nota-exploracion" placeholder="TA, FC, FR, Temp, SpO2. Hallazgos relevantes de la exploración..."></textarea></div>
-            <div class="form-group full"><label>Resultados de Estudios (si aplica)</label><textarea id="extra-estudios" placeholder="Laboratorios, gabinete, imagen..."></textarea></div>
-          </div>`
-      },
-      urgencias: {
-        titulo: '🚑 Nota de Urgencias',
-        campos: `
-          <div class="form-grid">
-            <div class="form-group full"><label>Motivo de Atención de Urgencia *</label><textarea id="nota-motivo" placeholder="Motivo de ingreso a urgencias"></textarea></div>
-            <div class="form-group"><label>Hora de Llegada</label><input type="text" id="extra-hora-llegada" placeholder="HH:MM"></div>
-            <div class="form-group"><label>Medio de Llegada</label>
-              <select id="extra-medio-llegada">
-                <option value="">Seleccionar...</option>
-                <option value="Propio pie">Propio pie</option>
-                <option value="Ambulancia">Ambulancia</option>
-                <option value="Vehículo particular">Vehículo particular</option>
-                <option value="Referido">Referido de otra unidad</option>
-              </select>
-            </div>
-            <div class="form-group full"><label>Estado al Ingreso / Exploración Física *</label><textarea id="nota-exploracion" placeholder="Signos vitales: TA, FC, FR, Temp, SpO2. Estado de conciencia (Glasgow). Exploración por regiones..."></textarea></div>
-            <div class="form-group full"><label>Triage / Clasificación de Urgencia</label>
-              <select id="extra-triage">
-                <option value="">Seleccionar nivel...</option>
-                <option value="Rojo - Resucitación">🔴 Rojo - Resucitación (inmediato)</option>
-                <option value="Naranja - Emergencia">🟠 Naranja - Emergencia (≤10 min)</option>
-                <option value="Amarillo - Urgencia">🟡 Amarillo - Urgencia (≤60 min)</option>
-                <option value="Verde - Urgencia menor">🟢 Verde - Urgencia menor (≤120 min)</option>
-                <option value="Azul - No urgencia">🔵 Azul - No urgencia (≤240 min)</option>
-              </select>
-            </div>
-            <div class="form-group full"><label>Tratamiento Inicial en Urgencias</label><textarea id="extra-tratamiento-urgencia" placeholder="Medicamentos administrados, procedimientos de urgencia..."></textarea></div>
-            <div class="form-group"><label>Pronóstico</label><input type="text" id="extra-pronostico" placeholder="Bueno / Reservado / Grave"></div>
-            <div class="form-group"><label>Destino del Paciente</label>
-              <select id="extra-destino">
-                <option value="">Seleccionar...</option>
-                <option value="Alta a domicilio">Alta a domicilio</option>
-                <option value="Observación">Observación</option>
-                <option value="Hospitalización">Hospitalización</option>
-                <option value="Quirófano">Quirófano</option>
-                <option value="UCI">Terapia intensiva</option>
-                <option value="Referencia">Referencia a otra unidad</option>
-                <option value="Defunción">Defunción</option>
-              </select>
-            </div>
-          </div>`
-      },
-      enfermeria: {
-        titulo: '👩‍⚕️ Nota de Enfermería',
-        campos: `
-          <div class="form-grid">
-            <div class="form-group full"><label>Valoración de Enfermería / Observaciones *</label><textarea id="nota-motivo" placeholder="Estado general del paciente, habitus exterior, nivel de conciencia, estado emocional..."></textarea></div>
-            <div class="form-group full"><label>Signos Vitales</label><textarea id="nota-exploracion" placeholder="TA, FC, FR, Temp, SpO2, Glucemia capilar, Peso (si aplica)..."></textarea></div>
-            <div class="form-group full"><label>Procedimientos Realizados</label><textarea id="extra-procedimientos" placeholder="Canalización de vía, administración de medicamentos, curaciones, sondas, aspiración de secreciones..."></textarea></div>
-            <div class="form-group full"><label>Medicamentos Administrados</label><textarea id="extra-medicamentos-enf" placeholder="Medicamento, dosis, vía, hora de administración..."></textarea></div>
-            <div class="form-group full"><label>Plan de Cuidados de Enfermería</label><textarea id="extra-plan-cuidados" placeholder="Diagnósticos de enfermería (NANDA), intervenciones (NIC), resultados esperados (NOC)..."></textarea></div>
-            <div class="form-group full"><label>Observaciones Especiales</label><textarea id="extra-observaciones" placeholder="Eventos adversos, caídas, cambios de posición, ingresos/egresos de líquidos..."></textarea></div>
-          </div>`
-      }
-    };
-
-    const NOMBRES_TIPO = { primera_vez:'Primera Vez', evolucion:'Evolución', urgencias:'Urgencias', enfermeria:'Enfermería' };
-    const COLORES_TIPO = { primera_vez:'#2b6cb0', evolucion:'#dd6b20', urgencias:'#e53e3e', enfermeria:'#38a169' };
-    const ICONOS_TIPO = { primera_vez:'📄', evolucion:'📝', urgencias:'🚑', enfermeria:'👩‍⚕️' };
-
-    // ══════════════════════════════════════════════════
-    //  INIT + RBAC
-    // ══════════════════════════════════════════════════
-
-    let rolUsuario = '';
-
-    function aplicarRBAC(rol) {
-      rolUsuario = rol;
-      const esMedico = rol === 'Médico' || rol === 'Admin';
-      const esEnfermeria = rol === 'Enfermería';
-      const esSecretaria = rol === 'Secretaria';
-
-      if (esMedico) {
-        document.getElementById('admin-sidebar').style.display = 'block';
-      }
-      if (esEnfermeria) {
-        document.getElementById('btn-reg-paciente').style.display = 'none';
-      }
-      if (esSecretaria) {
-        document.getElementById('tab-notas').style.display = 'none';
-        document.getElementById('tab-consentimientos').style.display = 'none';
-        document.getElementById('tab-recetas').style.display = 'none';
-        document.getElementById('tab-auditoria').style.display = 'none';
-        document.getElementById('btns-notas-medico').style.display = 'none';
-        document.getElementById('btn-nota-enfermeria').style.display = 'none';
-        document.getElementById('btns-solo-medico').style.display = 'none';
-      }
-      if (esEnfermeria) {
-        document.getElementById('btns-notas-medico').style.display = 'none';
-        document.getElementById('btns-solo-medico').style.display = 'none';
-        document.getElementById('tab-auditoria').style.display = 'none';
-      }
-    }
-
-    (async function init() {
-      const res = await window.api.obtenerSesion();
-      if (!res.ok) { await window.api.irA('index.html'); return; }
-      const u = res.usuario;
-      let saludo = '';
-      switch(u.titulo) { case 'Dr.': saludo='Dr. '; break; case 'Dra.': saludo='Dra. '; break; case 'Lic.': saludo='Lic. '; break; case 'Sr.': saludo='Sr. '; break; case 'Sra.': saludo='Sra. '; break; }
-      const g = u.sexo === 'F' ? 'a' : 'o';
-      document.getElementById('texto-bienvenida').textContent = `Bienvenid${g}, ${saludo}${u.nombre_completo}`;
-      aplicarRBAC(u.rol);
-      listarPacientes();
-    })();
-
-    async function cerrarSesion() { await window.api.cerrarSesion(); }
-
-    document.getElementById('cu-titulo').addEventListener('change', function() {
-      const esMedico = this.value === 'Dr.' || this.value === 'Dra.';
-      document.getElementById('cu-campo-cedula').style.display = esMedico ? 'block' : 'none';
-      if (!esMedico) document.getElementById('cu-cedula').value = '';
-    });
-
-    async function crearUsuario() {
-      const nombre = document.getElementById('cu-nombre').value.trim();
-      const titulo = document.getElementById('cu-titulo').value;
-      const sexo = document.getElementById('cu-sexo').value;
-      const cedula = document.getElementById('cu-cedula').value.trim();
-      const usuario = document.getElementById('cu-usuario').value.trim();
-      const password = document.getElementById('cu-password').value;
-      const confirmar = document.getElementById('cu-confirmar').value;
-      const err = document.getElementById('error-crear-usuario');
-      const btn = document.getElementById('btn-crear-usuario');
-
-      if (!nombre || !titulo || !sexo || !usuario || !password || !confirmar) {
-        err.textContent = 'Llena todos los campos obligatorios.'; err.style.display = 'block'; return;
-      }
-      const esMedico = titulo === 'Dr.' || titulo === 'Dra.';
-      if (esMedico && !cedula) {
-        err.textContent = 'La cédula profesional es obligatoria para médicos.'; err.style.display = 'block'; return;
-      }
-
-      btn.disabled = true; btn.textContent = 'Creando...';
-      try {
-        const res = await window.api.registro({ nombre, usuario, password, confirmar, cedula, titulo, sexo });
-        if (res.ok) {
-          cerrarModal('modal-crear-usuario');
-          alert(`✅ Usuario "${usuario}" creado exitosamente.`);
-        } else { err.textContent = res.error; err.style.display = 'block'; }
-      } catch (e) { err.textContent = 'Error de conexión.'; err.style.display = 'block'; }
-      finally { btn.disabled = false; btn.textContent = 'Crear Usuario'; }
-    }
-
-    async function abrirGestionUsuarios() {
-      abrirModal('modal-gestion-usuarios');
-      await cargarListaUsuarios();
-    }
-
-    async function cargarListaUsuarios() {
-      const res = await window.api.listarUsuarios();
-      if (!res.ok) {
-        document.getElementById('lista-pendientes').innerHTML = `<p style="color:#e53e3e;">${esc(res.error)}</p>`;
-        document.getElementById('lista-activos').innerHTML = '';
-        return;
-      }
-
-      const pendientes = res.usuarios.filter(u => u.rol === 'Pendiente');
-      const activos = res.usuarios.filter(u => u.rol !== 'Pendiente');
-
-      if (pendientes.length === 0) {
-        document.getElementById('lista-pendientes').innerHTML = '<p style="color:#a0aec0; font-size:13px;">No hay cuentas pendientes de aprobación. ✅</p>';
-      } else {
-        let html = '<table class="tabla-simple"><thead><tr><th>Usuario</th><th>Nombre</th><th>Título</th><th>Asignar Rol</th><th>Acción</th></tr></thead><tbody>';
-        pendientes.forEach(u => {
-          html += `<tr>
-            <td><code>${esc(u.username)}</code></td>
-            <td>${esc(u.nombre_completo)}</td>
-            <td>${esc(u.titulo)}</td>
-            <td>
-              <select id="rol-pendiente-${u.id_usuario}" style="padding:4px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-                <option value="">Seleccionar...</option>
-                <option value="Médico">Médico</option>
-                <option value="Enfermería">Enfermería</option>
-                <option value="Secretaria">Secretaria</option>
-                <option value="Admin">Admin</option>
-              </select>
-            </td>
-            <td>
-              <button onclick="aprobarUsuario(${u.id_usuario})" style="background:#38a169; color:white; border:none; border-radius:4px; padding:5px 12px; font-size:12px; cursor:pointer; font-weight:600;">✅ Aprobar</button>
-            </td>
-          </tr>`;
-        });
-        html += '</tbody></table>';
-        document.getElementById('lista-pendientes').innerHTML = html;
-      }
-
-      if (activos.length === 0) {
-        document.getElementById('lista-activos').innerHTML = '<p style="color:#a0aec0; font-size:13px;">No hay usuarios registrados.</p>';
-      } else {
-        let html = '<table class="tabla-simple"><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead><tbody>';
-        activos.forEach(u => {
-          const estadoBadge = u.activo
-            ? '<span style="background:#c6f6d5; color:#22543d; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">Activo</span>'
-            : '<span style="background:#fed7d7; color:#742a2a; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">Inactivo</span>';
-          const accionBtn = u.activo
-            ? `<button onclick="desactivarUsuario(${u.id_usuario})" style="background:#e53e3e; color:white; border:none; border-radius:4px; padding:5px 10px; font-size:11px; cursor:pointer;">Desactivar</button>`
-            : `<select id="rol-inactivo-${u.id_usuario}" style="padding:3px 6px; border:1px solid #e2e8f0; border-radius:4px; font-size:11px; margin-right:4px;"><option value="">Rol...</option><option value="Médico">Médico</option><option value="Enfermería">Enfermería</option><option value="Secretaria">Secretaria</option><option value="Admin">Admin</option></select><button onclick="reactivarUsuario(${u.id_usuario})" style="background:#38a169; color:white; border:none; border-radius:4px; padding:5px 10px; font-size:11px; cursor:pointer;">Reactivar</button>`;
-          html += `<tr>
-            <td><code>${esc(u.username)}</code></td>
-            <td>${esc(u.nombre_completo)}</td>
-            <td><span style="font-weight:600;">${esc(u.rol)}</span></td>
-            <td>${estadoBadge}</td>
-            <td>${accionBtn}</td>
-          </tr>`;
-        });
-        html += '</tbody></table>';
-        document.getElementById('lista-activos').innerHTML = html;
-      }
-    }
-
-    async function aprobarUsuario(idUsuario) {
-      const select = document.getElementById(`rol-pendiente-${idUsuario}`);
-      const rol = select ? select.value : '';
-      if (!rol) { alert('Selecciona un rol antes de aprobar.'); return; }
-      const res = await window.api.aprobarUsuario({ id_usuario: idUsuario, rol });
-      if (res.ok) {
-        alert(`✅ Usuario aprobado con rol "${rol}".`);
-        await cargarListaUsuarios();
-      } else { alert(`Error: ${res.error}`); }
-    }
-
-    async function desactivarUsuario(idUsuario) {
-      if (!confirm('¿Seguro que deseas desactivar este usuario?')) return;
-      const res = await window.api.desactivarUsuario(idUsuario);
-      if (res.ok) {
-        await cargarListaUsuarios();
-      } else { alert(`Error: ${res.error}`); }
-    }
-
-    async function reactivarUsuario(idUsuario) {
-      const select = document.getElementById(`rol-inactivo-${idUsuario}`);
-      const rol = select ? select.value : '';
-      if (!rol) { alert('Selecciona un rol para reactivar al usuario.'); return; }
-      if (!confirm(`¿Reactivar este usuario con rol "${rol}"?`)) return;
-      const res = await window.api.aprobarUsuario({ id_usuario: idUsuario, rol });
-      if (res.ok) {
-        await cargarListaUsuarios();
-      } else { alert(`Error: ${res.error}`); }
-    }
-
-    // ── MODALES ──
-    function abrirModal(id) { document.getElementById(id).classList.add('visible'); initCanvases(); }
-    function cerrarModal(id) {
-      const m = document.getElementById(id); m.classList.remove('visible');
-      m.querySelectorAll('input, textarea').forEach(i => i.value = '');
-      m.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
-      m.querySelectorAll('.error-modal').forEach(e => e.style.display = 'none');
-      m.querySelectorAll('canvas').forEach(c => { c.getContext('2d').clearRect(0, 0, c.width, c.height); });
-      cie10Seleccionados = [];
-    }
-
-    // ── CANVAS FIRMA ──
-    const canvasInit = {};
-    function initCanvases() {
-      setTimeout(() => {
-        document.querySelectorAll('.firma-container canvas').forEach(canvas => {
-          if (canvasInit[canvas.id]) { canvasInit[canvas.id] = false; }
-          canvas.width = canvas.offsetWidth; canvas.height = 90;
-          const ctx = canvas.getContext('2d');
-          ctx.strokeStyle = '#1a202c'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-          let drawing = false;
-          canvas.onmousedown = e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
-          canvas.onmousemove = e => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } };
-          canvas.onmouseup = () => drawing = false;
-          canvas.onmouseleave = () => drawing = false;
-          canvasInit[canvas.id] = true;
-        });
-      }, 150);
-    }
-    function limpiarCanvas(id) { const c = document.getElementById(id); c.getContext('2d').clearRect(0, 0, c.width, c.height); }
-    function obtenerFirma(id) {
-      const c = document.getElementById(id);
-      if (!c) return null;
-      const p = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-      for (let i = 3; i < p.length; i += 4) { if (p[i] > 0) return c.toDataURL('image/png'); }
-      return null;
-    }
-
-    // ══════════════════════════════════════════════════
-    //  CIE-10 MULTI-SELECT
-    // ══════════════════════════════════════════════════
-
-    function renderCIE10Dropdown(filtro = '') {
-      const dd = document.getElementById('cie10-dropdown');
-      const f = filtro.toLowerCase();
-      const catalogo = window.CIE10_CATALOGO;
-      if (!catalogo || catalogo.length === 0) {
-        dd.innerHTML = '<div style="padding:12px; color:#e53e3e; text-align:center;">⚠️ Catálogo CIE-10 no disponible</div>';
-        console.warn('CIE-10: window.CIE10_CATALOGO no está disponible. Verifica que preload.js cargó correctamente.');
-        return;
-      }
-      const filtrados = catalogo.filter(c => c.codigo.toLowerCase().includes(f) || c.descripcion.toLowerCase().includes(f));
-      let html = '';
-      filtrados.forEach(cat => {
-        const sel = cie10Seleccionados.some(s => s.c === cat.codigo) ? 'selected' : '';
-        html += `<div class="cie10-option ${sel}" data-code="${esc(cat.codigo)}" data-desc="${esc(cat.descripcion)}"><span><span class="code">${esc(cat.codigo)}</span>${esc(cat.descripcion)}</span>${sel ? '✓' : ''}</div>`;
-      });
-      if (!html) html = '<div style="padding:12px; color:#a0aec0; text-align:center;">Sin resultados</div>';
-      dd.innerHTML = html;
-      dd.querySelectorAll('.cie10-option').forEach(el => {
-        el.addEventListener('click', () => toggleCIE10(el.dataset.code, el.dataset.desc));
-      });
-    }
-
-    function toggleCIE10(codigo, descripcion) {
-      const idx = cie10Seleccionados.findIndex(s => s.c === codigo);
-      if (idx >= 0) cie10Seleccionados.splice(idx, 1);
-      else cie10Seleccionados.push({ c: codigo, d: descripcion });
-      renderCIE10Tags();
-      renderCIE10Dropdown(document.getElementById('cie10-search').value);
-    }
-
-    function renderCIE10Tags() {
-      const container = document.getElementById('cie10-selected');
-      const searchInput = document.getElementById('cie10-search');
-      
-      // SOLUCIÓN: Limpiar solo las etiquetas que NO son la barra de búsqueda
-      Array.from(container.querySelectorAll('.cie10-tag')).forEach(el => el.remove());
-
-      cie10Seleccionados.forEach(s => {
-        const tag = document.createElement('span');
-        tag.className = 'cie10-tag';
-        tag.appendChild(document.createTextNode(`${s.c} - ${s.d} `));
-        const removeBtn = document.createElement('span');
-        removeBtn.className = 'remove';
-        removeBtn.textContent = '×';
-        removeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleCIE10(s.c, s.d); });
-        tag.appendChild(removeBtn);
-        // SOLUCIÓN: Insertamos la etiqueta de manera segura antes de la barra de búsqueda
-        container.insertBefore(tag, searchInput);
-      });
-    }
-
-    function filtrarCIE10(valor) { renderCIE10Dropdown(valor); abrirDropdownCIE10(); }
-    function abrirDropdownCIE10() { document.getElementById('cie10-dropdown').classList.add('open'); renderCIE10Dropdown(document.getElementById('cie10-search').value); }
-
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.cie10-container')) document.getElementById('cie10-dropdown')?.classList.remove('open');
-    });
-
-    // ══════════════════════════════════════════════════
-    //  PACIENTES
-    // ══════════════════════════════════════════════════
-
-    async function listarPacientes() {
-      const res = await window.api.listarPacientes();
-      const c = document.getElementById('contenedor-tarjetas');
-      if (!res.ok || res.pacientes.length === 0) {
-        c.innerHTML = '<div class="empty-state"><span>📂</span>No hay expedientes registrados.<br>Use el botón superior para añadir el primero.</div>'; return;
-      }
-      c.innerHTML = res.pacientes.map(r => `
-        <div class="pac-card" onclick="cargarExpediente('${esc(r.folio_interno)}')">
-          <div><strong>${esc(r.nombre)} ${esc(r.primer_apellido)} ${esc(r.segundo_apellido)}</strong>
-          <p>Exp: ${esc(r.folio_interno)} · CURP: ${esc(r.curp)}</p></div>
-          <button class="btn-abrir">Abrir ➜</button>
-        </div>`).join('');
-    }
-
-    async function guardarPaciente() {
-      const d = { folio: document.getElementById('pac-folio').value.trim(), curp: document.getElementById('pac-curp').value.trim().toUpperCase(), nombre: document.getElementById('pac-nombre').value.trim(), paterno: document.getElementById('pac-paterno').value.trim(), materno: document.getElementById('pac-materno').value.trim(), fecha: document.getElementById('pac-fecha').value.trim(), sexo: document.getElementById('pac-sexo').value };
-      const err = document.getElementById('error-paciente');
-      if (!d.folio||!d.curp||!d.nombre||!d.paterno||!d.fecha) { err.textContent='Faltan datos obligatorios.'; err.style.display='block'; return; }
-      const res = await window.api.guardarPaciente(d);
-      if (res.ok) { cerrarModal('modal-paciente'); listarPacientes(); }
-      else { err.textContent = res.error; err.style.display = 'block'; }
-    }
-
-    // ══════════════════════════════════════════════════
-    //  CARGAR EXPEDIENTE
-    // ══════════════════════════════════════════════════
-
-    async function cargarExpediente(folio) {
-      const res = await window.api.buscarPaciente(folio);
-      if (!res.ok) return;
-      folioActivo = folio;
-      const r = res.paciente;
-      const a = r.fecha_nacimiento.substring(0,4), m = r.fecha_nacimiento.substring(4,6), d = r.fecha_nacimiento.substring(6,8);
-
-      document.getElementById('perfil-paciente').innerHTML = `
-        <div class="perfil-row"><div class="avatar">${esc(r.nombre).charAt(0)}</div>
-        <div><h4>${esc(r.nombre)} ${esc(r.primer_apellido)}</h4><p>${r.sexo==='M'?'Femenino':'Masculino'} · ${r.edad} años</p>
-        <p style="font-size:10px; margin-top:2px;">EXP: ${esc(r.folio_interno)}</p></div></div>`;
-
-      document.getElementById('ficha-identificacion').innerHTML = `
-        <div class="ficha-group"><span class="fl">Folio</span><span class="fv">${esc(r.folio_interno)}</span></div>
-        <div class="ficha-group"><span class="fl">CURP</span><span class="fv">${esc(r.curp)}</span></div>
-        <div class="ficha-group"><span class="fl">Paciente</span><span class="fv">${esc(r.nombre)} ${esc(r.primer_apellido)} ${esc(r.segundo_apellido)}</span></div>
-        <div class="ficha-group"><span class="fl">Nacimiento</span><span class="fv">${d}/${m}/${a}</span></div>
-        <div class="ficha-group"><span class="fl">Sexo</span><span class="fv">${r.sexo==='H'?'Hombre':'Mujer'}</span></div>
-        <div class="ficha-group"><span class="fl">Edad</span><span class="fv">${r.edad} años</span></div>`;
-
-      document.getElementById('lista-pacientes-container').style.display = 'none';
-      document.getElementById('vista-expediente').classList.add('visible');
-      document.getElementById('sidebar-nav').style.display = 'none';
-      document.getElementById('acciones-exp').style.display = 'block';
-      if (rolUsuario === 'Secretaria') {
-        document.getElementById('timeline-section').style.display = 'none';
-        document.getElementById('detail-panel').innerHTML = '<div class="detail-inner"><div class="empty-state" style="padding:40px; text-align:center; color:#718096;">ℹ️ Puede consultar los datos demográficos del paciente mostrados en la ficha superior.</div></div>';
-      } else {
-        cambiarTab('notas');
-      }
-    }
-
-    function mostrarListaPacientes() {
-      document.getElementById('lista-pacientes-container').style.display = 'block';
-      document.getElementById('vista-expediente').classList.remove('visible');
-      document.getElementById('sidebar-nav').style.display = 'block';
-      document.getElementById('acciones-exp').style.display = 'none';
-      folioActivo = null; notasCache = []; notaSeleccionada = null;
-      document.getElementById('perfil-paciente').innerHTML = `<div class="perfil-row"><div class="avatar">?</div><div><h4>Seleccione Paciente</h4><p>Busque un paciente</p></div></div>`;
-    }
-
-    // ══════════════════════════════════════════════════
-    //  TABS
-    // ══════════════════════════════════════════════════
-
-    function cambiarTab(tab) {
-      if (rolUsuario === 'Secretaria') return;
-      if (rolUsuario === 'Enfermería' && tab === 'auditoria') return;
-
-      tabActivo = tab;
-      document.querySelectorAll('.exp-tab').forEach(t => t.classList.toggle('activo', t.dataset.tab === tab));
-      document.getElementById('timeline-section').style.display = (tab === 'notas') ? 'block' : 'none';
-      if (tab === 'notas') cargarNotas();
-      else if (tab === 'consentimientos') cargarConsentimientos();
-      else if (tab === 'recetas') cargarRecetas();
-      else if (tab === 'auditoria') cargarAuditoria();
-    }
-
-    // ══════════════════════════════════════════════════
-    //  NOTAS CLÍNICAS + TIMELINE
-    // ══════════════════════════════════════════════════
-
-    function abrirModalNotaTipo(tipo) {
-      if (!folioActivo) return;
-      const config = CAMPOS_POR_TIPO[tipo];
-      if (!config) return;
-      document.getElementById('nota-tipo').value = tipo;
-      document.getElementById('modal-nota-titulo').textContent = config.titulo;
-      document.getElementById('campos-dinamicos-nota').innerHTML = config.campos;
-      cie10Seleccionados = [];
-      renderCIE10Tags();
-      abrirModal('modal-nota');
-    }
-
-    async function guardarNota() {
-      const err = document.getElementById('error-nota');
-      const tipo = document.getElementById('nota-tipo').value;
-      const motivo = document.getElementById('nota-motivo')?.value.trim();
-      const exploracion = document.getElementById('nota-exploracion')?.value.trim() || '';
-
-      if (!motivo) { err.textContent='El campo principal es obligatorio.'; err.style.display='block'; return; }
-      if (cie10Seleccionados.length === 0) { err.textContent='Seleccione al menos un diagnóstico CIE-10.'; err.style.display='block'; return; }
-
-      const diagnosticoStr = cie10Seleccionados.map(s => `${s.c}: ${s.d}`).join(' | ');
-
-      const camposExtra = {};
-      document.querySelectorAll('#campos-dinamicos-nota [id^="extra-"]').forEach(el => {
-        const key = el.id.replace('extra-', '');
-        camposExtra[key] = el.value?.trim() || '';
-      });
-
-      const res = await window.api.guardarNota({
-        folio_paciente: folioActivo, tipo_nota: tipo, motivo_consulta: motivo,
-        exploracion_fisica: exploracion, diagnostico_principal_cie10: diagnosticoStr,
-        plan_tratamiento: document.getElementById('nota-plan')?.value.trim() || '',
-        firma_profesional: obtenerFirma('firma-nota-canvas') || '',
-        campos_extra: camposExtra,
-      });
-      if (res.ok) { cerrarModal('modal-nota'); cargarNotas(); }
-      else { err.textContent = res.error; err.style.display = 'block'; }
-    }
-
-    async function cargarNotas() {
-      const res = await window.api.obtenerNotas(folioActivo);
-      notasCache = res.ok ? res.notas : [];
-      renderTimeline();
-      if (notasCache.length === 0) {
-        document.getElementById('detail-panel').innerHTML = '<div class="empty-state"><span>📝</span>No hay notas clínicas aún.<br>Use el menú lateral para crear la primera nota.</div>';
-        notaSeleccionada = null;
-      } else { seleccionarNota(notasCache.length - 1); }
-    }
-
-    const coloresNota = ['#2b6cb0','#dd6b20','#d69e2e','#e53e3e','#38a169','#805ad5','#d53f8c'];
-    function colorPorIndice(i) { return coloresNota[i % coloresNota.length]; }
-
-    function renderTimeline() {
-      const track = document.getElementById('timeline-track');
-      if (notasCache.length === 0) {
-        track.innerHTML = `<div class="tl-item" onclick="abrirModalNotaTipo('evolucion')"><div class="tl-date">Hoy</div><div class="tl-circle bg-add" style="font-size:22px;">+</div><div class="tl-label">Añadir Nota</div></div>`;
-        document.getElementById('timeline-periodo').textContent = ''; return;
-      }
-      const primera = new Date(notasCache[0].fecha_creacion);
-      const ultima = new Date(notasCache[notasCache.length-1].fecha_creacion);
-      document.getElementById('timeline-periodo').textContent = `${primera.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})} — ${ultima.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}`;
-
-      let html = '';
-      notasCache.forEach((n, i) => {
-        const f = new Date(n.fecha_creacion);
-        const fechaStr = f.toLocaleDateString('es-MX', { day:'2-digit', month:'2-digit', year:'2-digit' });
-        const tipo = n.tipo_nota || 'evolucion';
-        const color = COLORES_TIPO[tipo] || colorPorIndice(i);
-        const icono = ICONOS_TIPO[tipo] || '📝';
-        const selected = (notaSeleccionada === i) ? 'selected' : '';
-        const diagCorto = (n.diagnostico_principal_cie10 || '').substring(0, 12);
-        const tipoNombre = NOMBRES_TIPO[tipo] || tipo;
-
-        html += `<div class="tl-item ${selected}" onclick="seleccionarNota(${i})" id="tl-item-${i}">
-          <div class="tl-date">${fechaStr}</div>
-          <div class="tl-circle" style="background:${color}; font-size:18px;">${icono}</div>
-          <div class="tl-label">${esc(diagCorto)}</div>
-          <div class="tl-tipo">${tipoNombre}</div>
-          <div class="tl-author">${esc((n.nombre_creador||'').split(' ')[0])}</div>
-        </div>`;
-      });
-      html += `<div class="tl-item" onclick="abrirModalNotaTipo('evolucion')"><div class="tl-date">Nuevo</div><div class="tl-circle bg-add" style="font-size:22px;">+</div><div class="tl-label">Añadir Nota</div></div>`;
-      track.innerHTML = html;
-    }
-
-    function seleccionarNota(idx) {
-      notaSeleccionada = idx;
-      document.querySelectorAll('.tl-item').forEach((el, i) => el.classList.toggle('selected', i === idx));
-      const el = document.getElementById('tl-item-' + idx);
-      if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      renderDetalleNota(notasCache[idx]);
-    }
-
-    function renderDetalleNota(n) {
-      const f = new Date(n.fecha_creacion);
-      const tipo = n.tipo_nota || 'evolucion';
-      const tipoNombre = NOMBRES_TIPO[tipo] || tipo;
-      const tipoColor = COLORES_TIPO[tipo] || '#4a5568';
-      let extras = {};
-      try { extras = n.campos_extra ? JSON.parse(n.campos_extra) : {}; } catch(e) {}
-
-      let html = `
-        <div class="detail-header">
-          <div>
-            <h2><span class="tipo-nota-badge" style="background:${tipoColor}22; color:${tipoColor};">${tipoNombre}</span> ${esc(n.diagnostico_principal_cie10?.split('|')[0] || '')}</h2>
-            <p>Fecha: ${f.toLocaleString('es-MX')} · Responsable: ${esc(n.nombre_creador)} · Céd: ${esc(n.cedula_profesional||'N/A')}</p>
-          </div>
-          <span class="detail-badge" title="Hash SHA-256">🔒 ${n.hash_nota.substring(0,20)}...</span>
-        </div>`;
-
-      html += `<div class="detail-section"><h4>${tipo === 'primera_vez' ? 'Motivo de Consulta / Padecimiento Actual' : tipo === 'urgencias' ? 'Motivo de Atención' : tipo === 'enfermeria' ? 'Valoración de Enfermería' : 'Evolución / Estado Actual'}</h4><p>${esc(n.motivo_consulta)}</p></div>`;
-
-      if (tipo === 'primera_vez') {
-        if (extras.ahf) html += `<div class="detail-section"><h4>Antecedentes Heredo-Familiares</h4><p>${esc(extras.ahf)}</p></div>`;
-        if (extras.apnp) html += `<div class="detail-section"><h4>Antecedentes Personales No Patológicos</h4><p>${esc(extras.apnp)}</p></div>`;
-        if (extras.app) html += `<div class="detail-section"><h4>Antecedentes Personales Patológicos</h4><p>${esc(extras.app)}</p></div>`;
-        if (extras.ago) html += `<div class="detail-section"><h4>Antecedentes Gineco-Obstétricos</h4><p>${esc(extras.ago)}</p></div>`;
-        if (extras.ipas) html += `<div class="detail-section"><h4>Interrogatorio por Aparatos y Sistemas</h4><p>${esc(extras.ipas)}</p></div>`;
-      }
-      if (tipo === 'urgencias') {
-        if (extras['hora-llegada']) html += `<div class="detail-section"><h4>Hora de Llegada</h4><p>${esc(extras['hora-llegada'])}</p></div>`;
-        if (extras['medio-llegada']) html += `<div class="detail-section"><h4>Medio de Llegada</h4><p>${esc(extras['medio-llegada'])}</p></div>`;
-        if (extras.triage) html += `<div class="detail-section"><h4>Triage</h4><p>${esc(extras.triage)}</p></div>`;
-        if (extras['tratamiento-urgencia']) html += `<div class="detail-section"><h4>Tratamiento Inicial</h4><p>${esc(extras['tratamiento-urgencia'])}</p></div>`;
-        if (extras.destino) html += `<div class="detail-section"><h4>Destino del Paciente</h4><p>${esc(extras.destino)}</p></div>`;
-      }
-      if (tipo === 'evolucion') {
-        if (extras.estudios) html += `<div class="detail-section"><h4>Resultados de Estudios</h4><p>${esc(extras.estudios)}</p></div>`;
-      }
-      if (tipo === 'enfermeria') {
-        if (extras.procedimientos) html += `<div class="detail-section"><h4>Procedimientos Realizados</h4><p>${esc(extras.procedimientos)}</p></div>`;
-        if (extras['medicamentos-enf']) html += `<div class="detail-section"><h4>Medicamentos Administrados</h4><p>${esc(extras['medicamentos-enf'])}</p></div>`;
-        if (extras['plan-cuidados']) html += `<div class="detail-section"><h4>Plan de Cuidados</h4><p>${esc(extras['plan-cuidados'])}</p></div>`;
-        if (extras.observaciones) html += `<div class="detail-section"><h4>Observaciones</h4><p>${esc(extras.observaciones)}</p></div>`;
-      }
-      if (extras.pronostico) html += `<div class="detail-section"><h4>Pronóstico</h4><p>${esc(extras.pronostico)}</p></div>`;
-
-      if (n.exploracion_fisica) html += `<div class="detail-section"><h4>Exploración Física / Signos Vitales</h4><p>${esc(n.exploracion_fisica)}</p></div>`;
-
-      html += `<div class="detail-section"><h4>Diagnóstico(s) CIE-10</h4>`;
-      const diags = (n.diagnostico_principal_cie10 || '').split(' | ');
-      diags.forEach(d => { html += `<span class="tipo-nota-badge" style="background:#ebf8ff; color:#2b6cb0; margin:2px 4px 2px 0; display:inline-block;">${esc(d)}</span>`; });
-      html += `</div>`;
-
-      if (n.plan_tratamiento) html += `<div class="detail-section"><h4>Plan de Tratamiento</h4><p>${esc(n.plan_tratamiento)}</p></div>`;
-      if (n.firma_profesional && /^data:image\/(png|jpeg|jpg|gif|webp);base64,/.test(n.firma_profesional)) html += `<div class="detail-section"><h4>Firma del Profesional</h4><img src="${n.firma_profesional}" style="max-height:80px; border:1px solid #e2e8f0; border-radius:6px; padding:4px;"></div>`;
-
-      document.getElementById('detail-panel').innerHTML = html;
-    }
-
-    // ══════════════════════════════════════════════════
-    //  CONSENTIMIENTOS
-    // ══════════════════════════════════════════════════
-
-    async function guardarConsentimiento() {
-      const err = document.getElementById('error-consentimiento');
-      const tipo = document.getElementById('cons-tipo').value.trim();
-      const desc = document.getElementById('cons-descripcion').value.trim();
-      const riesgos = document.getElementById('cons-riesgos').value.trim();
-      const nombrePac = document.getElementById('cons-nombre-paciente').value.trim();
-      const nombreT1 = document.getElementById('cons-nombre-testigo1').value.trim();
-      const nombreT2 = document.getElementById('cons-nombre-testigo2').value.trim();
-      if (!tipo||!desc||!riesgos||!nombrePac||!nombreT1||!nombreT2) { err.textContent='Llena todos los campos obligatorios.'; err.style.display='block'; return; }
-      const fP = obtenerFirma('firma-paciente-canvas'), fM = obtenerFirma('firma-medico-cons-canvas'), f1 = obtenerFirma('firma-testigo1-canvas'), f2 = obtenerFirma('firma-testigo2-canvas');
-      if (!fP||!fM||!f1||!f2) { err.textContent='Se requieren las 4 firmas.'; err.style.display='block'; return; }
-      const res = await window.api.guardarConsentimiento({
-        folio_paciente: folioActivo, tipo_procedimiento: tipo, descripcion_procedimiento: desc, riesgos,
-        beneficios: document.getElementById('cons-beneficios').value.trim(), alternativas: document.getElementById('cons-alternativas').value.trim(),
-        firma_paciente: fP, nombre_paciente_firmante: nombrePac, firma_testigo1: f1, nombre_testigo1: nombreT1, firma_testigo2: f2, nombre_testigo2: nombreT2, firma_medico: fM,
-      });
-      if (res.ok) { cerrarModal('modal-consentimiento'); cambiarTab('consentimientos'); }
-      else { err.textContent = res.error; err.style.display = 'block'; }
-    }
-
-    async function cargarConsentimientos() {
-      const res = await window.api.obtenerConsentimientos(folioActivo);
-      const panel = document.getElementById('detail-panel');
-      if (!res.ok || res.consentimientos.length === 0) { panel.innerHTML = '<div class="empty-state"><span>✍️</span>No hay consentimientos informados.</div>'; return; }
-      let html = '<h3 style="margin-bottom:15px; color:#1a365d;">Consentimientos Informados</h3>';
-      html += '<table class="tabla-simple"><thead><tr><th>Fecha</th><th>Procedimiento</th><th>Paciente</th><th>Testigo 1</th><th>Testigo 2</th><th>Médico</th><th>Hash</th></tr></thead><tbody>';
-      res.consentimientos.forEach(c => {
-        html += `<tr><td>${new Date(c.fecha_creacion).toLocaleDateString('es-MX')}</td><td><strong>${esc(c.tipo_procedimiento)}</strong></td><td>✅ ${esc(c.nombre_paciente_firmante)}</td><td>✅ ${esc(c.nombre_testigo1)}</td><td>✅ ${esc(c.nombre_testigo2)}</td><td>✅ ${esc(c.nombre_medico)}</td><td><span class="detail-badge">${c.hash_documento.substring(0,12)}…</span></td></tr>`;
-      });
-      html += '</tbody></table>';
-      panel.innerHTML = html;
-    }
-
-    // ══════════════════════════════════════════════════
-    //  RECETAS
-    // ══════════════════════════════════════════════════
-
-    async function guardarReceta() {
-      const err = document.getElementById('error-receta');
-      const diag = document.getElementById('receta-diagnostico').value.trim();
-      const meds = document.getElementById('receta-medicamentos').value.trim();
-      if (!diag||!meds) { err.textContent='Diagnóstico y medicamentos obligatorios.'; err.style.display='block'; return; }
-      const res = await window.api.guardarReceta({
-        folio_paciente: folioActivo, diagnostico: diag, medicamentos: meds,
-        indicaciones: document.getElementById('receta-indicaciones').value.trim(),
-        tipo_receta: document.getElementById('receta-tipo').value,
-        firma_medico: obtenerFirma('firma-receta-canvas') || '',
-      });
-      if (res.ok) { cerrarModal('modal-receta'); cambiarTab('recetas'); }
-      else { err.textContent = res.error; err.style.display = 'block'; }
-    }
-
-    async function cargarRecetas() {
-      const res = await window.api.obtenerRecetas(folioActivo);
-      const panel = document.getElementById('detail-panel');
-      if (!res.ok || res.recetas.length === 0) { panel.innerHTML = '<div class="empty-state"><span>💊</span>No hay recetas médicas.</div>'; return; }
-      let html = '<h3 style="margin-bottom:15px; color:#1a365d;">Recetas Médicas</h3>';
-      html += '<table class="tabla-simple"><thead><tr><th>Fecha</th><th>Diagnóstico</th><th>Medicamentos</th><th>Tipo</th><th>Médico</th><th>Cédula</th></tr></thead><tbody>';
-      res.recetas.forEach(r => {
-        const badge = r.tipo_receta === 'antibiotico' ? '<span style="color:#e53e3e;font-weight:700;">🔴 Antibiótico</span>' : '🟢 General';
-        html += `<tr><td>${new Date(r.fecha_creacion).toLocaleDateString('es-MX')}</td><td>${esc(r.diagnostico)}</td><td>${esc(r.medicamentos)}</td><td>${badge}</td><td>${esc(r.nombre_medico)}</td><td>${esc(r.cedula_medico)}</td></tr>`;
-      });
-      html += '</tbody></table>';
-      if (res.recetas.some(r => r.tipo_receta === 'antibiotico')) {
-        html += '<div style="background:#fff5f5; border:1px solid #feb2b2; border-radius:8px; padding:12px; margin-top:15px; font-size:12px; color:#742a2a;"><strong>⚠️ AVISO LEGAL:</strong> Las recetas de antibióticos requieren firma autógrafa original según la farmacopea mexicana.</div>';
-      }
-      panel.innerHTML = html;
-    }
-
-    // ══════════════════════════════════════════════════
-    //  VERIFICAR INTEGRIDAD
-    // ══════════════════════════════════════════════════
-
-    async function verificarIntegridad() {
-      if (!folioActivo) return;
-      const res = await window.api.verificarIntegridadNotas(folioActivo);
-      const panel = document.getElementById('detail-panel');
-      document.querySelectorAll('.exp-tab').forEach(t => t.classList.remove('activo'));
-      document.getElementById('timeline-section').style.display = 'none';
-      if (res.ok && res.integro) {
-        panel.innerHTML = `<div class="integridad-ok">✅ INTEGRIDAD VERIFICADA<br><span style="font-weight:normal; font-size:13px;">${res.total_notas} nota(s) verificada(s). Cadena SHA-256 íntegra.</span></div>`;
-      } else if (res.ok && !res.integro) {
-        panel.innerHTML = `<div class="integridad-error">❌ ALERTA: INTEGRIDAD COMPROMETIDA<br><span style="font-weight:normal; font-size:13px;">${res.mensaje}</span></div>`;
-      }
-    }
-
-    // ══════════════════════════════════════════════════
-    //  EXPORTAR + AUDITORÍA
-    // ══════════════════════════════════════════════════
-
-    async function exportarExpediente() {
-      if (!folioActivo) return;
-      const res = await window.api.exportarExpediente(folioActivo);
-      if (res.ok) alert('Expediente exportado en:\n' + res.ruta);
-    }
-
-    async function cargarAuditoria() {
-      const res = await window.api.obtenerAuditoria(folioActivo);
-      const panel = document.getElementById('detail-panel');
-      if (!res.ok || res.registros.length === 0) { panel.innerHTML = '<div class="empty-state"><span>🔒</span>No hay registros de auditoría.</div>'; return; }
-      let html = '<h3 style="margin-bottom:15px; color:#1a365d;">Registro de Auditoría (NOM-024)</h3>';
-      html += '<table class="tabla-simple"><thead><tr><th>Fecha / Hora</th><th>Acción</th><th>Usuario</th><th>Detalles</th></tr></thead><tbody>';
-      res.registros.forEach(r => {
-        html += `<tr><td>${new Date(r.fecha_hora).toLocaleString('es-MX')}</td><td><strong>${esc(r.accion_realizada)}</strong></td><td>${esc(r.nombre_completo)}</td><td style="font-size:11px; font-family:monospace;">${esc(r.detalles)||'—'}</td></tr>`;
-      });
-      html += '</tbody></table>';
-      panel.innerHTML = html;
-    }
-  </script>
+  <script src="assets/js/dashboard.js"></script>
 </body>
 </html>
