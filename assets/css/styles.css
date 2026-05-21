@@ -22,13 +22,11 @@
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font); }
 body { display: flex; height: 100vh; background-color: var(--bg); overflow: hidden; color: var(--text-main); }
 
-/* SCROLLBARS CUSTOM */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* ANIMACIONES */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
 
@@ -58,14 +56,12 @@ body { display: flex; height: 100vh; background-color: var(--bg); overflow: hidd
 .topbar h1 { font-size: 22px; color: var(--text-main); font-weight: 800; letter-spacing: -0.5px; }
 .topbar p { font-size: 13px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
 
-/* BOTONES PRIMARIOS */
 .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2); display: flex; align-items: center; gap: 8px; justify-content: center; }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(59, 130, 246, 0.3); }
-.btn-primary:active { transform: translateY(0); }
 
+/* SCROLL COMPLETO DEL PANEL DERECHO */
 .content-area { flex-grow: 1; overflow-y: auto; padding: 0; display: flex; flex-direction: column; scroll-behavior: smooth; }
 
-/* LISTA DE PACIENTES */
 .lista-container { padding: 40px; flex-grow: 1; max-width: 1200px; margin: 0 auto; width: 100%; animation: fadeIn 0.4s ease-out; }
 .lista-titulo { font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
 .pac-card { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: var(--shadow-sm); }
@@ -74,10 +70,6 @@ body { display: flex; height: 100vh; background-color: var(--bg); overflow: hidd
 .pac-card p { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
 .pac-card .btn-abrir { background: #f1f5f9; color: var(--primary-hover); border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.2s; }
 .pac-card:hover .btn-abrir { background: #e0f2fe; }
-
-/* EXPEDIENTE */
-#vista-expediente { display: none; flex-direction: column; flex-grow: 1; overflow: hidden; animation: fadeIn 0.3s ease-out; }
-#vista-expediente.visible { display: flex; }
 
 .ficha { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 24px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; flex-shrink: 0; box-shadow: inset 0 -4px 0 var(--primary); position: relative; z-index: 2; }
 .ficha-group { display: flex; flex-direction: column; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
@@ -89,27 +81,37 @@ body { display: flex; height: 100vh; background-color: var(--bg); overflow: hidd
 .exp-tab:hover { color: var(--text-main); background: #f8fafc; }
 .exp-tab.activo { color: var(--primary); border-bottom-color: var(--primary); }
 
-.timeline-section { background: var(--bg); padding: 24px 40px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
-.timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.timeline-header h3 { font-size: 14px; color: var(--text-main); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-.timeline-header span { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+/* LÍNEA DEL TIEMPO - (Ya NO es sticky, fluirá con la pantalla) */
+.timeline-section { 
+  background: var(--bg); 
+  padding: 15px 40px 0 40px; 
+  flex-shrink: 0; 
+  border-bottom: 1px solid var(--border); 
+}
+.timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.timeline-header h3 { font-size: 13px; color: var(--text-main); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
 
-.timeline-track { display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding: 10px 0 20px; scroll-behavior: smooth; }
-.tl-item { display: flex; flex-direction: column; align-items: center; min-width: 120px; cursor: pointer; position: relative; padding: 0 10px; transition: transform 0.2s; }
+/* El Track de la línea */
+.timeline-track { position: relative; display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding: 10px 0 20px; scroll-behavior: smooth; }
+.tl-item { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 105px; cursor: pointer; padding: 0 10px; transition: transform 0.2s; }
 .tl-item:hover { transform: translateY(-5px); }
-.tl-date { font-size: 11px; color: var(--text-muted); font-weight: 700; margin-bottom: 10px; background: white; padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border); }
 
-.tl-circle { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; color: white; transition: all 0.2s; position: relative; z-index: 2; box-shadow: var(--shadow-md); border: 3px solid var(--bg); }
+/* La rayita que conecta los nodos */
+.tl-item:not(:last-child)::after {
+  content: ''; position: absolute; top: 40px; left: calc(50% + 20px); width: calc(100% - 40px); border-top: 2px solid #cbd5e1; z-index: 1;
+}
+
+.tl-date { font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 10px; background: white; padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border); position: relative; z-index: 2; }
+.tl-circle { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: white; transition: all 0.2s; position: relative; z-index: 2; box-shadow: var(--shadow-sm); border: 3px solid var(--bg); }
 .tl-item.selected .tl-circle { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3); transform: scale(1.15); border-color: white; }
 
-.tl-label { font-size: 11px; color: var(--text-main); font-weight: 700; margin-top: 10px; text-align: center; max-width: 110px; line-height: 1.4; }
-.tl-tipo { font-size: 9px; color: var(--text-muted); text-align: center; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-.tl-item:not(:last-child)::after { content:''; position:absolute; top:38px; left:calc(50% + 24px); width:calc(100% - 48px); border-top: 2px solid #cbd5e1; z-index:1; }
-
+.tl-label { font-size: 10px; color: var(--text-main); font-weight: 700; margin-top: 10px; text-align: center; max-width: 90px; line-height: 1.3; position: relative; z-index: 2; }
+.tl-tipo { font-size: 9px; color: var(--text-muted); text-align: center; margin-top: 4px; text-transform: uppercase; font-weight: 600; position: relative; z-index: 2; }
 .bg-add { background: var(--surface); border: 2px dashed #94a3b8; color: #64748b; }
 .tl-item:hover .bg-add { background: #e2e8f0; color: var(--text-main); border-color: var(--text-muted); }
 
-.detail-panel { flex-grow: 1; overflow-y: auto; background: var(--surface); position: relative; }
+/* DETALLES DE LA NOTA */
+.detail-panel { flex-grow: 1; background: var(--surface); position: relative; }
 .detail-inner { padding: 40px; max-width: 1000px; margin: 0 auto; animation: slideIn 0.3s ease-out; }
 .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid var(--bg); }
 .detail-header h2 { font-size: 24px; color: var(--text-main); font-weight: 800; letter-spacing: -0.5px; }

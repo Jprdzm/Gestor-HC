@@ -60,7 +60,7 @@
         <div class="lista-titulo">Pacientes Recientes</div>
         <div id="contenedor-tarjetas"></div>
       </div>
-      <div id="vista-expediente">
+      <div id="vista-expediente" style="display: none; flex-direction: column; flex-grow: 1;">
         <div class="ficha" id="ficha-identificacion"></div>
         <div class="exp-tabs" id="exp-tabs">
           <div class="exp-tab activo" id="tab-notas" data-tab="notas" onclick="cambiarTab('notas')">📋 Notas Clínicas</div>
@@ -98,11 +98,29 @@
         
         <div class="form-group"><label>Nacimiento * (AAAAMMDD)</label><input type="text" id="pac-fecha" maxlength="8" placeholder="19580919"></div>
         <div class="form-group"><label>Sexo Biológico *</label><select id="pac-sexo"><option value="H">Hombre</option><option value="M">Mujer</option></select></div>
-        <div class="form-group"><label>Entidad Nacimiento *</label><select id="pac-edonac"><option value="01" selected>Aguascalientes</option><option value="00">No Disponible (00)</option></select></div>
         
-        <div class="form-group"><label>Estado Residencia (Clave)</label><input type="text" id="pac-edores" maxlength="2" value="01"></div>
-        <div class="form-group"><label>Municipio Residencia (Clave)</label><input type="text" id="pac-munres" maxlength="3" value="001"></div>
-        <div class="form-group"><label>Localidad Residencia (Clave)</label><input type="text" id="pac-locres" maxlength="4" value="0001"></div>
+        <div class="form-group">
+          <label>Entidad Nacimiento *</label>
+          <select id="pac-edonac-sel" onchange="AppState.actualizarCodigoEstado('pac-edonac-sel', 'pac-edonac-cod')">
+            <option value="00">Seleccione...</option>
+            <option value="01">Aguascalientes</option><option value="02">Baja California</option><option value="03">Baja California Sur</option><option value="04">Campeche</option><option value="05">Coahuila</option><option value="06">Colima</option><option value="07">Chiapas</option><option value="08">Chihuahua</option><option value="09">CDMX</option><option value="10">Durango</option><option value="11">Guanajuato</option><option value="12">Guerrero</option><option value="13">Hidalgo</option><option value="14">Jalisco</option><option value="15">México</option><option value="16">Michoacán</option><option value="17">Morelos</option><option value="18">Nayarit</option><option value="19">Nuevo León</option><option value="20">Oaxaca</option><option value="21">Puebla</option><option value="22">Querétaro</option><option value="23">Quintana Roo</option><option value="24">San Luis Potosí</option><option value="25">Sinaloa</option><option value="26">Sonora</option><option value="27">Tabasco</option><option value="28">Tamaulipas</option><option value="29">Tlaxcala</option><option value="30">Veracruz</option><option value="31">Yucatán</option><option value="32">Zacatecas</option>
+          </select>
+          <input type="hidden" id="pac-edonac-cod" value="00">
+        </div>
+        
+        <div class="form-group">
+          <label>Estado Residencia *</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="pac-edores-sel" style="flex: 1;" onchange="AppState.actualizarCodigoEstado('pac-edores-sel', 'pac-edores-cod')">
+              <option value="00">Seleccione...</option>
+              <option value="01">Aguascalientes</option><option value="02">Baja California</option><option value="03">Baja California Sur</option><option value="04">Campeche</option><option value="05">Coahuila</option><option value="06">Colima</option><option value="07">Chiapas</option><option value="08">Chihuahua</option><option value="09">CDMX</option><option value="10">Durango</option><option value="11">Guanajuato</option><option value="12">Guerrero</option><option value="13">Hidalgo</option><option value="14">Jalisco</option><option value="15">México</option><option value="16">Michoacán</option><option value="17">Morelos</option><option value="18">Nayarit</option><option value="19">Nuevo León</option><option value="20">Oaxaca</option><option value="21">Puebla</option><option value="22">Querétaro</option><option value="23">Quintana Roo</option><option value="24">San Luis Potosí</option><option value="25">Sinaloa</option><option value="26">Sonora</option><option value="27">Tabasco</option><option value="28">Tamaulipas</option><option value="29">Tlaxcala</option><option value="30">Veracruz</option><option value="31">Yucatán</option><option value="32">Zacatecas</option>
+            </select>
+            <input type="text" id="pac-edores-cod" readonly placeholder="00" style="width: 50px; text-align: center; font-weight: bold; background: #e2e8f0;" value="00">
+          </div>
+        </div>
+        
+        <div class="form-group"><label>Municipio Residencia</label><input type="text" id="pac-munres" maxlength="3" value="001"></div>
+        <div class="form-group"><label>Localidad Residencia</label><input type="text" id="pac-locres" maxlength="4" value="0001"></div>
         
         <div class="form-group"><label>Lugar de Origen</label><input type="text" id="pac-origen" placeholder="AGUASCALIENTES"></div>
         <div class="form-group"><label>Lugar de Residencia</label><input type="text" id="pac-residencia" placeholder="AGUASCALIENTES"></div>
@@ -245,8 +263,7 @@
     <div class="modal-content large">
       <h2>👥 Gestión y Aprobación de Usuarios</h2>
       <p class="modal-subtitle">Aquí puedes aprobar cuentas nuevas y cambiar roles.</p>
-      <div id="tabla-usuarios-container" style="margin-top: 15px; max-height: 450px; overflow-y: auto;">
-        </div>
+      <div id="tabla-usuarios-container" style="margin-top: 15px; max-height: 450px; overflow-y: auto;"></div>
       <button class="btn-cancelar" style="margin-top: 24px;" onclick="cerrarModal('modal-gestionar-usuarios')">Cerrar Panel</button>
     </div>
   </div>

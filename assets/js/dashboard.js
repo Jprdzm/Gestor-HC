@@ -1,6 +1,6 @@
 function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
 
-// EL ESTADO CENTRALIZADO (SIN VARIABLES SUELTAS)
+// EL ESTADO CENTRALIZADO
 const AppState = {
   folioActivo: null,
   pacienteActivoDatos: null,
@@ -8,7 +8,12 @@ const AppState = {
   notasCache: [],
   notaSeleccionada: null,
   cie10Seleccionados: [],
-  rolUsuario: ''
+  rolUsuario: '',
+  actualizarCodigoEstado: function(selectId, inputId) {
+    const select = document.getElementById(selectId);
+    const input = document.getElementById(inputId);
+    if (select && input) { input.value = select.value; }
+  }
 };
 
 const BLOQUE_SIGNOS_VITALES = `
@@ -66,12 +71,12 @@ function aplicarRBAC(rol) {
 }
 
 (async function init() {
-  const res = await window.api.obtenerSesion(); if (!res.ok) { await window.api.irA('index.html'); return; }
+  const res = await window.api.obtenerSesion(); if (!res.ok) { window.api.irA('index.html'); return; }
   window.CIE10_CATALOGO = await window.api.obtenerCatalogoCIE10();
   aplicarRBAC(res.usuario.rol); listarPacientes();
 })();
 
-async function cerrarSesion() { await window.api.cerrarSesion(); }
+async function cerrarSesion() { if(confirm("¿Estás seguro de que deseas salir del sistema?")) { await window.api.irA('index.html'); } }
 
 function abrirModal(id) { document.getElementById(id).classList.add('visible'); initCanvases(); }
 function cerrarModal(id) {
@@ -79,7 +84,7 @@ function cerrarModal(id) {
   m.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]), textarea').forEach(i => i.value = ''); m.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
   m.querySelectorAll('.error-modal').forEach(e => { e.style.display = 'none'; e.textContent = ''; }); m.querySelectorAll('canvas').forEach(c => { c.getContext('2d').clearRect(0, 0, c.width, c.height); });
   AppState.cie10Seleccionados = []; if (id === 'modal-nota') { const s = document.getElementById('cie10-search'); if(s) s.value = ''; renderCIE10Tags(); }
-  if (id === 'modal-paciente') { document.getElementById('pac-edonac').value = '01'; document.getElementById('pac-edores').value = '01'; document.getElementById('pac-munres').value = '001'; document.getElementById('pac-locres').value = '0001'; document.getElementById('pac-nacionalidad').value = 'MEX'; }
+  if (id === 'modal-paciente') { document.getElementById('pac-edonac-sel').value = '01'; document.getElementById('pac-edores-sel').value = '01'; AppState.actualizarCodigoEstado('pac-edonac-sel','pac-edonac-cod'); AppState.actualizarCodigoEstado('pac-edores-sel','pac-edores-cod'); document.getElementById('pac-munres').value = '001'; document.getElementById('pac-locres').value = '0001'; document.getElementById('pac-nacionalidad').value = 'MEX'; }
 }
 
 const canvasInit = {};
@@ -110,7 +115,7 @@ function renderCIE10Dropdown(filtro = '') {
   if (!catalogo || catalogo.length === 0) return;
   const filtrados = catalogo.filter(c => c.codigo.toLowerCase().includes(f) || c.descripcion.toLowerCase().includes(f));
   let html = '';
-  filtrados.forEach(cat => { const sel = AppState.cie10Seleccionados.some(s => s.c === cat.codigo) ? 'selected' : ''; html += `<div class="cie10-option ${sel}" data-code="${esc(cat.codigo)}" data-desc="${esc(cat.descripcion)}"><span><span class="code">${esc(cat.codigo)}</span>${esc(cat.descripcion)}</span>${sel ? '✓' : ''}</div>`; });
+  filtrados.slice(0, 50).forEach(cat => { const sel = AppState.cie10Seleccionados.some(s => s.c === cat.codigo) ? 'selected' : ''; html += `<div class="cie10-option ${sel}" data-code="${esc(cat.codigo)}" data-desc="${esc(cat.descripcion)}"><span><span class="code">${esc(cat.codigo)}</span>${esc(cat.descripcion)}</span>${sel ? '✓' : ''}</div>`; });
   dd.innerHTML = html || '<div style="padding:16px; color:var(--text-muted); text-align:center; font-weight:500;">Sin resultados</div>';
   dd.querySelectorAll('.cie10-option').forEach(el => el.addEventListener('click', () => toggleCIE10(el.dataset.code, el.dataset.desc)));
 }
@@ -147,7 +152,8 @@ async function guardarPaciente() {
     sexo: document.getElementById('pac-sexo').value, cama: document.getElementById('pac-cama').value.trim(), lugar_origen: document.getElementById('pac-origen').value.trim(), lugar_residencia: document.getElementById('pac-residencia').value.trim(),
     nacionalidad: document.getElementById('pac-nacionalidad').value.trim(), domicilio: document.getElementById('pac-domicilio').value.trim(), escolaridad: document.getElementById('pac-escolaridad').value.trim(), religion: document.getElementById('pac-religion').value.trim(),
     ocupacion: document.getElementById('pac-ocupacion').value.trim(), telefono: document.getElementById('pac-telefono').value.trim(), lateralidad: document.getElementById('pac-lateralidad').value, estado_civil: document.getElementById('pac-estado-civil').value.trim(),
-    contacto_emergencia_nombre: document.getElementById('pac-em-nombre').value.trim(), contacto_emergencia_telefono: document.getElementById('pac-em-telefono').value.trim(), entidad_nacimiento: document.getElementById('pac-edonac').value, entidad_residencia: document.getElementById('pac-edores').value,
+    contacto_emergencia_nombre: document.getElementById('pac-em-nombre').value.trim(), contacto_emergencia_telefono: document.getElementById('pac-em-telefono').value.trim(), 
+    entidad_nacimiento: document.getElementById('pac-edonac-cod').value, entidad_residencia: document.getElementById('pac-edores-cod').value,
     municipio_residencia: document.getElementById('pac-munres').value, localidad_residencia: document.getElementById('pac-locres').value
   };
   if (!d.folio||!d.curp||!d.nombre||!d.paterno||!d.fecha||!d.entidad_nacimiento||!d.nacionalidad) { err.textContent='Faltan datos obligatorios marcados con *'; err.style.display='block'; return; }
@@ -158,36 +164,64 @@ async function guardarPaciente() {
 }
 
 async function cargarExpediente(folio) {
-  const res = await window.api.buscarPaciente(folio); if (!res.ok) return;
-  AppState.folioActivo = folio; AppState.pacienteActivoDatos = res.paciente; const r = res.paciente;
-  const a = r.fecha_nacimiento.substring(0,4), m = r.fecha_nacimiento.substring(4,6), d = r.fecha_nacimiento.substring(6,8);
-  
-  document.getElementById('perfil-paciente').innerHTML = `<div class="perfil-row"><div class="avatar">${esc(r.nombre).charAt(0)}</div><div><h4>${esc(r.nombre)} ${esc(r.primer_apellido)}</h4><p>${r.sexo==='M'?'Femenino':'Masculino'} &bull; ${r.edad} años</p><p style="font-size:10px; margin-top:2px; font-weight:700; color:var(--primary);">EXP: ${esc(r.folio_interno)}</p></div></div>`;
-  
-  document.getElementById('ficha-identificacion').innerHTML = `
-    <div class="ficha-group"><span class="fl">Nombre del Paciente</span><span class="fv">${esc(r.nombre)} ${esc(r.primer_apellido)} ${esc(r.segundo_apellido||'')}</span></div>
-    <div class="ficha-group"><span class="fl">Cama / Folio</span><span class="fv" style="color:#93c5fd;">${esc(r.cama || 'N/D')} / ${esc(r.folio_interno)}</span></div>
-    <div class="ficha-group"><span class="fl">Nacimiento / Edad</span><span class="fv">${d}/${m}/${a} (${r.edad} años)</span></div>
-    <div class="ficha-group"><span class="fl">Género / Edo. Civil</span><span class="fv">${r.sexo==='H'?'Masculino':'Femenino'} &bull; ${esc(r.estado_civil || 'N/D')}</span></div>
-    <div class="ficha-group"><span class="fl">Origen / Residencia</span><span class="fv">${esc(r.lugar_origen || 'N/D')} / ${esc(r.lugar_residencia || 'N/D')}</span></div>
-    <div class="ficha-group"><span class="fl">Escolaridad</span><span class="fv">${esc(r.escolaridad || 'N/D')}</span></div>
-    <div class="ficha-group"><span class="fl">Religión</span><span class="fv">${esc(r.religion || 'N/D')}</span></div>
-    <div class="ficha-group"><span class="fl">Ocupación</span><span class="fv">${esc(r.ocupacion || 'N/D')}</span></div>
-    <div class="ficha-group" style="grid-column: span 2;"><span class="fl">Domicilio Completo</span><span class="fv" style="font-size:12px;">${esc(r.domicilio || 'N/D')}</span></div>
-    <div class="ficha-group"><span class="fl">Teléfono Personal</span><span class="fv">${esc(r.telefono || 'N/D')}</span></div>
-    <div class="ficha-group" style="background:rgba(239, 68, 68, 0.15); border-color:rgba(239,68,68,0.3);"><span class="fl" style="color:#fca5a5;">Contacto Emergencia</span><span class="fv">${esc(r.contacto_emergencia_nombre||'N/D')}<br><span style="font-size:11px; color:#f87171;">${esc(r.contacto_emergencia_telefono||'')}</span></span></div>
-  `;
-  
-  document.getElementById('lista-pacientes-container').style.display = 'none'; document.getElementById('vista-expediente').classList.add('visible'); document.getElementById('sidebar-nav').style.display = 'none'; document.getElementById('acciones-exp').style.display = 'block';
-  if (AppState.rolUsuario === 'Secretaria') { document.getElementById('timeline-section').style.display = 'none'; document.getElementById('detail-panel').innerHTML = '<div class="detail-inner"><div class="empty-state"><span>ℹ️</span><p>Puede consultar los datos demográficos del paciente.</p></div></div>'; } else { cambiarTab('notas'); }
+  try {
+    const res = await window.api.buscarPaciente(folio); if (!res.ok) return;
+    AppState.folioActivo = folio; AppState.pacienteActivoDatos = res.paciente; const r = res.paciente;
+    
+    document.getElementById('perfil-paciente').innerHTML = `<div class="perfil-row"><div class="avatar">${esc(r.nombre).charAt(0)}</div><div><h4>${esc(r.nombre)} ${esc(r.primer_apellido)}</h4><p>${r.sexo==='M'?'Femenino':'Masculino'} &bull; ${r.edad} años</p><p style="font-size:10px; margin-top:2px; font-weight:700; color:var(--primary);">EXP: ${esc(r.folio_interno)}</p></div></div>`;
+    
+    // AQUÍ DEVOLVÍ LOS CAMPOS QUE ME HABÍA COMIDO (Escolaridad, Religión, Ocupación)
+    document.getElementById('ficha-identificacion').innerHTML = `
+      <div class="ficha-group"><span class="fl">Nombre del Paciente</span><span class="fv">${esc(r.nombre)} ${esc(r.primer_apellido)} ${esc(r.segundo_apellido||'')}</span></div>
+      <div class="ficha-group"><span class="fl">Cama / Folio</span><span class="fv" style="color:#93c5fd;">${esc(r.cama || 'N/D')} / ${esc(r.folio_interno)}</span></div>
+      <div class="ficha-group"><span class="fl">Nacimiento / Edad</span><span class="fv">${esc(r.fecha_nacimiento)} (${r.edad} años)</span></div>
+      <div class="ficha-group"><span class="fl">Género / Edo. Civil</span><span class="fv">${r.sexo==='H'?'Masculino':'Femenino'} &bull; ${esc(r.estado_civil || 'N/D')}</span></div>
+      <div class="ficha-group"><span class="fl">Origen / Residencia</span><span class="fv">${esc(r.lugar_origen || 'N/D')} / ${esc(r.lugar_residencia || 'N/D')}</span></div>
+      <div class="ficha-group"><span class="fl">Escolaridad</span><span class="fv">${esc(r.escolaridad || 'N/D')}</span></div>
+      <div class="ficha-group"><span class="fl">Religión</span><span class="fv">${esc(r.religion || 'N/D')}</span></div>
+      <div class="ficha-group"><span class="fl">Ocupación</span><span class="fv">${esc(r.ocupacion || 'N/D')}</span></div>
+      <div class="ficha-group" style="grid-column: span 2;"><span class="fl">Domicilio Completo</span><span class="fv" style="font-size:12px;">${esc(r.domicilio || 'N/D')}</span></div>
+      <div class="ficha-group"><span class="fl">Teléfono Personal</span><span class="fv">${esc(r.telefono || 'N/D')}</span></div>
+      <div class="ficha-group" style="background:rgba(239, 68, 68, 0.15); border-color:rgba(239,68,68,0.3);"><span class="fl" style="color:#fca5a5;">Contacto Emergencia</span><span class="fv">${esc(r.contacto_emergencia_nombre||'N/D')}<br><span style="font-size:11px; color:#f87171;">${esc(r.contacto_emergencia_telefono||'')}</span></span></div>
+    `;
+    
+    document.getElementById('lista-pacientes-container').style.display = 'none'; 
+    document.getElementById('vista-expediente').style.display = 'flex'; 
+    document.getElementById('sidebar-nav').style.display = 'none'; 
+    document.getElementById('acciones-exp').style.display = 'block';
+    
+    if (AppState.rolUsuario === 'Secretaria') { 
+      document.getElementById('timeline-section').style.display = 'none'; 
+      document.getElementById('detail-panel').innerHTML = '<div class="detail-inner"><div class="empty-state"><span>ℹ️</span><p>Puede consultar los datos demográficos del paciente.</p></div></div>'; 
+    } else { 
+      cambiarTab('notas'); 
+    }
+  } catch (e) {
+    console.error("Error cargando expediente:", e);
+  }
 }
 
-function mostrarListaPacientes() { document.getElementById('lista-pacientes-container').style.display = 'block'; document.getElementById('vista-expediente').classList.remove('visible'); document.getElementById('sidebar-nav').style.display = 'block'; document.getElementById('acciones-exp').style.display = 'none'; AppState.folioActivo = null; document.getElementById('perfil-paciente').innerHTML = `<div class="perfil-row"><div class="avatar">?</div><div><h4>Seleccione Paciente</h4><p>Busque un paciente</p></div></div>`; }
+function mostrarListaPacientes() { 
+  document.getElementById('lista-pacientes-container').style.display = 'block'; 
+  document.getElementById('vista-expediente').style.display = 'none'; 
+  document.getElementById('sidebar-nav').style.display = 'block'; 
+  document.getElementById('acciones-exp').style.display = 'none'; 
+  AppState.folioActivo = null; 
+  document.getElementById('perfil-paciente').innerHTML = `<div class="perfil-row"><div class="avatar">?</div><div><h4>Seleccione Paciente</h4><p>Busque un paciente</p></div></div>`; 
+}
+
 function cambiarTab(tab) { if (AppState.rolUsuario === 'Secretaria') return; AppState.tabActivo = tab; document.querySelectorAll('.exp-tab').forEach(t => t.classList.toggle('activo', t.dataset.tab === tab)); document.getElementById('timeline-section').style.display = (tab === 'notas') ? 'block' : 'none'; if (tab === 'notas') cargarNotas(); else if (tab === 'consentimientos') cargarConsentimientos(); else if (tab === 'recetas') cargarRecetas(); }
-function clickAnadirNota() { if (AppState.rolUsuario === 'Enfermería') { abrirModalNotaTipo('enfermeria'); } else if (AppState.rolUsuario === 'Médico' || AppState.rolUsuario === 'Admin') { abrirModal('modal-selector-nota'); } }
+
+function clickAnadirNota() { 
+  if (AppState.rolUsuario === 'Enfermería') { abrirModalNotaTipo('enfermeria'); } 
+  else { abrirModal('modal-selector-nota'); } 
+}
 
 function abrirModalNotaTipo(tipo) {
-  if (!AppState.folioActivo) return;
+  if (!AppState.folioActivo) {
+    alert("Error: No hay paciente activo. Por favor, abre el expediente nuevamente.");
+    return;
+  }
   document.getElementById('nota-tipo').value = tipo;
   document.getElementById('modal-nota-titulo').textContent = CAMPOS_POR_TIPO[tipo].titulo;
   document.getElementById('campos-dinamicos-nota').innerHTML = CAMPOS_POR_TIPO[tipo].campos;
@@ -209,7 +243,7 @@ async function guardarNota() {
   const res = await window.api.guardarNota({
     folio_paciente: AppState.folioActivo, tipo_nota: document.getElementById('nota-tipo').value, motivo_consulta: motivo,
     exploracion_fisica: exploracion, diagnostico_principal_cie10: diagnosticoStr, plan_tratamiento: document.getElementById('nota-plan') ? document.getElementById('nota-plan').value.trim() : '',
-    firma_profesional: obtenerFirma('firma-nota-canvas') || '', firma_electronica: document.getElementById('nota-firma-electronica').value.trim() || '', campos_extra: camposExtra
+    firma_profesional: obtenerFirma('firma-nota-canvas') || '', firma_electronica: document.getElementById('nota-firma-electronica') ? document.getElementById('nota-firma-electronica').value.trim() : '', campos_extra: camposExtra
   });
   btn.disabled = false; btn.textContent = 'Guardar Nota Definitiva';
   if (res.ok) { cerrarModal('modal-nota'); cargarNotas(); } else { err.textContent = res.error; err.style.display = 'block'; }
@@ -219,7 +253,7 @@ async function cargarNotas() { const res = await window.api.obtenerNotas(AppStat
 
 function renderTimeline() { 
   const track = document.getElementById('timeline-track'); 
-  if (AppState.notasCache.length === 0) { track.innerHTML = `<div class="tl-item" onclick="clickAnadirNota()"><div class="tl-circle bg-add">+</div><div class="tl-label" style="color:var(--text-muted);">Añadir Nota</div></div>`; document.getElementById('timeline-periodo').textContent = ''; return; } 
+  if (AppState.notasCache.length === 0) { track.innerHTML = `<div class="tl-item" onclick="clickAnadirNota()"><div class="tl-circle bg-add" style="border: 2px dashed #94a3b8; color: #64748b; background: white;">+</div><div class="tl-label" style="color:var(--text-muted);">Añadir Nota</div></div>`; document.getElementById('timeline-periodo').textContent = ''; return; } 
   let html = ''; 
   AppState.notasCache.forEach((n, i) => { 
     const tipo = n.tipo_nota || 'evolucion'; const color = COLORES_TIPO[tipo] || '#64748b'; const icono = ICONOS_TIPO[tipo] || '📝'; 
@@ -230,7 +264,7 @@ function renderTimeline() {
       <div class="tl-tipo">${NOMBRES_TIPO[tipo] || tipo}</div>
     </div>`; 
   }); 
-  html += `<div class="tl-item" onclick="clickAnadirNota()"><div class="tl-date">Nuevo</div><div class="tl-circle bg-add">+</div><div class="tl-label" style="color:var(--text-muted);">Añadir Nota</div></div>`; 
+  html += `<div class="tl-item" onclick="clickAnadirNota()"><div class="tl-date">Nuevo</div><div class="tl-circle bg-add" style="border: 2px dashed #94a3b8; color: #64748b; background: white;">+</div><div class="tl-label" style="color:var(--text-muted);">Añadir Nota</div></div>`; 
   track.innerHTML = html; 
 }
 
@@ -238,11 +272,11 @@ function seleccionarNota(idx) {
   AppState.notaSeleccionada = idx; document.querySelectorAll('.tl-item').forEach((el, i) => el.classList.toggle('selected', i === idx)); const el = document.getElementById('tl-item-' + idx); if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   const n = AppState.notasCache[idx]; let extras = {}; try { extras = n.campos_extra ? JSON.parse(n.campos_extra) : {}; } catch(e) {}
   
-  let html = `<div class="detail-header"><div><h2>${esc(n.diagnostico_principal_cie10?.split('|')[0] || '')}</h2><p>Fecha: ${new Date(n.fecha_creacion).toLocaleString('es-MX')} &bull; Firmado por: <strong>${esc(n.nombre_creador)}</strong></p></div><div style="display:flex; gap:12px; align-items:center;"><button class="btn-primary" style="background:var(--success); color:white; padding:10px 16px; box-shadow:0 4px 6px rgba(16,185,129,0.2);" onclick="imprimirPDF('nota', ${idx})">🖨️ Imprimir PDF</button><span class="detail-badge" title="Hash SHA-256 de integridad">🔒 ${n.hash_nota.substring(0,18)}...</span></div></div>`;
+  let html = `<div class="detail-header"><div><h2>${esc(n.diagnostico_principal_cie10?.split('|')[0] || 'Sin diagnóstico')}</h2><p>Fecha: ${new Date(n.fecha_creacion).toLocaleString('es-MX')} &bull; Firmado por: <strong>${esc(n.nombre_creador || 'Desconocido')}</strong></p></div><div style="display:flex; gap:12px; align-items:center;"><button class="btn-primary" style="background:var(--success); color:white; padding:10px 16px; box-shadow:0 4px 6px rgba(16,185,129,0.2);" onclick="imprimirPDF('nota', ${idx})">🖨️ Imprimir PDF</button><span class="detail-badge" title="Hash SHA-256 de integridad">🔒 ${(n.hash_nota || 'SIN_FIRMA').substring(0,18)}...</span></div></div>`;
   
   if (n.tipo_nota === 'primera_vez' && extras.interrogatorio) { html += `<div class="detail-section" style="background:#f8fafc;"><span style="background:var(--bg); padding:6px 12px; border-radius:6px; font-size:12px; font-weight:800; color:var(--primary); border:1px solid var(--border);">Interrogatorio: ${esc(extras.interrogatorio)}</span></div>`; }
   
-  html += `<div class="detail-section"><h4>${n.tipo_nota === 'enfermeria' ? 'Valoración de Enfermería' : 'Motivo / Padecimiento Actual'}</h4><p>${esc(n.motivo_consulta)}</p></div>`;
+  html += `<div class="detail-section"><h4>${n.tipo_nota === 'enfermeria' ? 'Valoración de Enfermería' : 'Motivo / Padecimiento Actual'}</h4><p>${esc(n.motivo_consulta || n.padecimiento_actual || 'Interrogado y no referido')}</p></div>`;
   
   const tieneSV = extras['vs-peso'] || extras['vs-talla'] || extras['vs-ta'] || extras['vs-fc'] || extras['vs-fr'] || extras['vs-temp'];
   if (tieneSV) { html += `<div class="detail-section"><h4>Signos Vitales y Somatometría</h4><table class="tabla-sv"><tr><td><b>Peso:</b> ${esc(extras['vs-peso']||'-')} kg</td><td><b>Talla:</b> ${esc(extras['vs-talla']||'-')} m</td><td><b>IMC:</b> ${esc(extras['vs-imc']||'-')}</td><td><b>Peso Hab:</b> ${esc(extras['vs-pesohab']||'-')} kg</td></tr><tr><td><b>Pulso (FC):</b> ${esc(extras['vs-fc']||'-')} lpm</td><td><b>Resp (FR):</b> ${esc(extras['vs-fr']||'-')} rpm</td><td><b>TA:</b> ${esc(extras['vs-ta']||'-')} mmHg</td><td><b>Temp:</b> ${esc(extras['vs-temp']||'-')} °C</td></tr><tr><td colspan="4"><b>SatO2:</b> ${esc(extras['vs-sato2']||'-')} %</td></tr></table></div>`; }
@@ -311,65 +345,37 @@ async function imprimirPDF(tipo, idx) {
   if (res && res.ok) alert('Documento generado exitosamente en PDF para imprimir.');
 }
 
-async function abrirModalGestionUsuarios() {
-  abrirModal('modal-gestionar-usuarios');
-  await cargarListaUsuarios();
-}
-
+async function abrirModalGestionUsuarios() { abrirModal('modal-gestionar-usuarios'); await cargarListaUsuarios(); }
 async function cargarListaUsuarios() {
   const container = document.getElementById('tabla-usuarios-container');
   container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:500;">Cargando usuarios...</div>';
-  
   const res = await window.api.listarUsuarios();
-  if (!res.ok || !res.usuarios) { 
-    container.innerHTML = '<div class="error-modal" style="display:block">Error al cargar la base de datos de usuarios.</div>'; 
-    return; 
-  }
+  if (!res.ok || !res.usuarios) { container.innerHTML = '<div class="error-modal" style="display:block">Error al cargar la base de datos.</div>'; return; }
   
   let html = '<table class="tabla-simple"><thead><tr><th>Usuario / Nombre</th><th>Rol Asignado</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
-  
   res.usuarios.forEach(u => {
     const esActivo = u.activo === 1;
-    const estadoHtml = esActivo 
-      ? '<span style="background:rgba(16, 185, 129, 0.1); color:var(--success); padding:4px 8px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:0.5px;">ACTIVO</span>' 
-      : '<span style="background:rgba(239, 68, 68, 0.1); color:var(--danger); padding:4px 8px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:0.5px;">PENDIENTE</span>';
-      
-    html += `<tr>
-      <td>
-        <strong style="font-size:14px;">${esc(u.username)}</strong><br>
-        <span style="font-size:12px; color:var(--text-muted);">${esc(u.titulo)} ${esc(u.nombre_completo)}</span>
-      </td>
-      <td>
-        <select id="rol-usuario-${u.id_usuario}" style="padding:6px 10px; font-size:12px; border:2px solid var(--border); border-radius:6px; font-weight:600; outline:none;">
-          <option value="Médico" ${u.rol==='Médico'?'selected':''}>Médico</option>
-          <option value="Enfermería" ${u.rol==='Enfermería'?'selected':''}>Enfermería</option>
-          <option value="Secretaria" ${u.rol==='Secretaria'?'selected':''}>Secretaria</option>
-          <option value="Admin" ${u.rol==='Admin'?'selected':''}>Administrador</option>
-        </select>
-      </td>
-      <td>${estadoHtml}</td>
-      <td>
-        ${esActivo ? 
-          `<button class="btn-cancelar" style="padding:8px 14px; margin:0; font-size:11px; color:var(--danger); border-color:rgba(239,68,68,0.2); background:rgba(239,68,68,0.05);" onclick="desactivarUsuario(${u.id_usuario})">Desactivar</button>` : 
-          `<button class="btn-primary" style="background:var(--success); padding:8px 14px; margin:0; font-size:11px; box-shadow:none;" onclick="aprobarUsuario(${u.id_usuario})">Aprobar Acceso</button>`
-        }
-      </td>
-    </tr>`;
+    const estadoHtml = esActivo ? '<span style="background:rgba(16, 185, 129, 0.1); color:var(--success); padding:4px 8px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:0.5px;">ACTIVO</span>' : '<span style="background:rgba(239, 68, 68, 0.1); color:var(--danger); padding:4px 8px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:0.5px;">PENDIENTE</span>';
+    html += `<tr><td><strong style="font-size:14px;">${esc(u.username)}</strong><br><span style="font-size:12px; color:var(--text-muted);">${esc(u.titulo)} ${esc(u.nombre_completo)}</span></td>
+      <td><select id="rol-usuario-${u.id_usuario}" style="padding:6px 10px; font-size:12px; border:2px solid var(--border); border-radius:6px; font-weight:600; outline:none;">
+          <option value="Médico" ${u.rol==='Médico'?'selected':''}>Médico</option><option value="Enfermería" ${u.rol==='Enfermería'?'selected':''}>Enfermería</option><option value="Secretaria" ${u.rol==='Secretaria'?'selected':''}>Secretaria</option><option value="Admin" ${u.rol==='Admin'?'selected':''}>Administrador</option>
+        </select></td><td>${estadoHtml}</td>
+      <td>${esActivo ? `<button class="btn-cancelar" style="padding:8px 14px; margin:0; font-size:11px; color:var(--danger); border-color:rgba(239,68,68,0.2); background:rgba(239,68,68,0.05);" onclick="desactivarUsuario(${u.id_usuario})">Desactivar</button>` : `<button class="btn-primary" style="background:var(--success); padding:8px 14px; margin:0; font-size:11px; box-shadow:none;" onclick="aprobarUsuario(${u.id_usuario})">Aprobar Acceso</button>`}</td></tr>`;
   });
-  html += '</tbody></table>';
-  container.innerHTML = html;
+  html += '</tbody></table>'; container.innerHTML = html;
 }
-
 async function aprobarUsuario(id) {
-  const selectRol = document.getElementById(`rol-usuario-${id}`);
-  const nuevoRol = selectRol.value;
+  const nuevoRol = document.getElementById(`rol-usuario-${id}`).value;
   const res = await window.api.aprobarUsuario({ id_usuario: id, rol: nuevoRol });
   if (res.ok) { cargarListaUsuarios(); } else { alert("Error al aprobar usuario"); }
 }
-
 async function desactivarUsuario(id) {
   if(confirm("¿Seguro que quieres revocar el acceso a este usuario?")) {
     const res = await window.api.desactivarUsuario(id);
     if (res.ok) cargarListaUsuarios();
   }
+}
+async function crearUsuario() {
+  const res = await window.api.registro({nombre:document.getElementById('cu-nombre').value, usuario:document.getElementById('cu-usuario').value, password:document.getElementById('cu-password').value, confirmar:document.getElementById('cu-confirmar').value, titulo: document.getElementById('cu-titulo').value, sexo: document.getElementById('cu-sexo').value});
+  if(res.ok) { cerrarModal('modal-crear-usuario'); alert("Usuario creado. Revisa gestión de usuarios para aprobarlo."); } else { alert(res.error); }
 }

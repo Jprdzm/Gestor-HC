@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('api', {
   // Herramientas y Admin
   exportarExpediente: (f) => ipcRenderer.invoke('exportar-expediente', f),
   obtenerAuditoria: (f) => ipcRenderer.invoke('obtener-auditoria', f),
+  obtenerEstadisticasDashboard: () => ipcRenderer.invoke('obtener-estadisticas-dashboard'),
   listarUsuarios: () => ipcRenderer.invoke('listar-usuarios'),
   aprobarUsuario: (d) => ipcRenderer.invoke('aprobar-usuario', d),
   desactivarUsuario: (id) => ipcRenderer.invoke('desactivar-usuario', id),

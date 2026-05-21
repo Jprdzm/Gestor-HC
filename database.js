@@ -2,6 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const { CATALOGO_CIE10 } = require('./cie10_catalogo.js');
 
 const dbPath = path.join(__dirname, 'sistema_hc.db');
 const SALT_ROUNDS = 10;
@@ -32,14 +33,15 @@ function generarHashNota(nota, hashAnterior) {
     exploracion_fisica: nota.exploracion_fisica || '',
     diagnostico_principal_cie10: nota.diagnostico_principal_cie10,
     plan_tratamiento: nota.plan_tratamiento || '',
+    padecimiento_actual: nota.padecimiento_actual || '',
     campos_extra: nota.campos_extra || {}
   };
   return generarHash(JSON.stringify(notaEstable));
 }
 
-function inicializarBaseDeDatos() {
-  db.serialize(async () => {
-    db.run(`CREATE TABLE IF NOT EXISTS Paciente (
+async function inicializarBaseDeDatos() {
+  try {
+    await dbRun(`CREATE TABLE IF NOT EXISTS Paciente (
       folio_interno TEXT PRIMARY KEY, curp TEXT NOT NULL UNIQUE, nombre TEXT NOT NULL, primer_apellido TEXT NOT NULL, segundo_apellido TEXT,
       fecha_nacimiento TEXT NOT NULL, sexo TEXT NOT NULL CHECK(sexo IN ('M', 'H')), entidad_nacimiento TEXT NOT NULL, nacionalidad TEXT NOT NULL,
       entidad_residencia TEXT NOT NULL, municipio_residencia TEXT NOT NULL, localidad_residencia TEXT NOT NULL,
@@ -47,17 +49,17 @@ function inicializarBaseDeDatos() {
       contacto_emergencia_nombre TEXT, contacto_emergencia_telefono TEXT, ocupacion TEXT, estado_civil TEXT, lateralidad TEXT
     )`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS Usuario_PersonalSalud (
+    await dbRun(`CREATE TABLE IF NOT EXISTS Usuario_PersonalSalud (
       id_usuario INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, nombre_completo TEXT NOT NULL,
       cedula_profesional TEXT, universidad TEXT, titulo TEXT NOT NULL DEFAULT 'Dr.', sexo TEXT NOT NULL DEFAULT 'M', rol TEXT NOT NULL, activo INTEGER DEFAULT 1
     )`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS Registro_Auditoria (
+    await dbRun(`CREATE TABLE IF NOT EXISTS Registro_Auditoria (
       id_auditoria INTEGER PRIMARY KEY AUTOINCREMENT, id_usuario INTEGER NOT NULL, fecha_hora TEXT NOT NULL, accion_realizada TEXT NOT NULL,
       id_registro_afectado TEXT, detalles TEXT, FOREIGN KEY (id_usuario) REFERENCES Usuario_PersonalSalud(id_usuario)
     )`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS Historia_Clinica_Nota (
+    await dbRun(`CREATE TABLE IF NOT EXISTS Historia_Clinica_Nota (
       id_nota INTEGER PRIMARY KEY AUTOINCREMENT, folio_paciente TEXT NOT NULL, id_usuario_creador INTEGER NOT NULL, fecha_creacion TEXT NOT NULL,
       tipo_nota TEXT NOT NULL DEFAULT 'evolucion',
       motivo_consulta TEXT NOT NULL, exploracion_fisica TEXT, diagnostico_principal_cie10 TEXT NOT NULL, plan_tratamiento TEXT,
@@ -66,7 +68,7 @@ function inicializarBaseDeDatos() {
       FOREIGN KEY (folio_paciente) REFERENCES Paciente(folio_interno), FOREIGN KEY (id_usuario_creador) REFERENCES Usuario_PersonalSalud(id_usuario)
     )`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS Consentimiento_Informado (
+    await dbRun(`CREATE TABLE IF NOT EXISTS Consentimiento_Informado (
       id_consentimiento INTEGER PRIMARY KEY AUTOINCREMENT, folio_paciente TEXT NOT NULL, id_usuario_creador INTEGER NOT NULL, fecha_creacion TEXT NOT NULL,
       tipo_procedimiento TEXT NOT NULL, descripcion_procedimiento TEXT NOT NULL, riesgos TEXT NOT NULL, beneficios TEXT, alternativas TEXT,
       firma_paciente TEXT, nombre_paciente_firmante TEXT NOT NULL, firma_testigo1 TEXT, nombre_testigo1 TEXT NOT NULL,
@@ -74,7 +76,7 @@ function inicializarBaseDeDatos() {
       FOREIGN KEY (folio_paciente) REFERENCES Paciente(folio_interno), FOREIGN KEY (id_usuario_creador) REFERENCES Usuario_PersonalSalud(id_usuario)
     )`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS Receta_Medica (
+    await dbRun(`CREATE TABLE IF NOT EXISTS Receta_Medica (
       id_receta INTEGER PRIMARY KEY AUTOINCREMENT, folio_paciente TEXT NOT NULL, id_usuario_creador INTEGER NOT NULL, fecha_creacion TEXT NOT NULL,
       diagnostico TEXT NOT NULL, medicamentos TEXT NOT NULL, indicaciones TEXT, tipo_receta TEXT NOT NULL DEFAULT 'general',
       firma_medico TEXT, cedula_medico TEXT, universidad_medico TEXT, nombre_medico TEXT NOT NULL, hash_receta TEXT NOT NULL,
@@ -85,11 +87,72 @@ function inicializarBaseDeDatos() {
     try { await dbRun(`ALTER TABLE Usuario_PersonalSalud ADD COLUMN universidad TEXT`); } catch(e) { }
     try { await dbRun(`ALTER TABLE Receta_Medica ADD COLUMN universidad_medico TEXT`); } catch(e) { }
 
-    db.run(`CREATE INDEX IF NOT EXISTS idx_paciente_curp ON Paciente(curp)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_nota_folio ON Historia_Clinica_Nota(folio_paciente)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_receta_folio ON Receta_Medica(folio_paciente)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_auditoria_afectado ON Registro_Auditoria(id_registro_afectado)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_usuario_username ON Usuario_PersonalSalud(username)`);
+    // NOM-004
+    try { await dbRun(`ALTER TABLE Paciente ADD COLUMN antecedentes_heredofamiliares TEXT`); } catch(e) { }
+    try { await dbRun(`ALTER TABLE Paciente ADD COLUMN antecedentes_personales_patologicos TEXT`); } catch(e) { }
+    try { await dbRun(`ALTER TABLE Paciente ADD COLUMN antecedentes_personales_no_patologicos TEXT`); } catch(e) { }
+    try { await dbRun(`ALTER TABLE Paciente ADD COLUMN ultimo_usuario_id INTEGER`); } catch(e) { }
+    try { await dbRun(`ALTER TABLE Historia_Clinica_Nota ADD COLUMN padecimiento_actual TEXT`); } catch(e) { }
+
+    // CIE 10
+    await dbRun(`CREATE TABLE IF NOT EXISTS Catalogos_CIE10 (
+      codigo TEXT PRIMARY KEY,
+      descripcion TEXT NOT NULL,
+      capitulo TEXT NOT NULL
+    )`);
+    
+    // NOM-024 Auditoria Automatica (Triggers)
+    await dbRun(`CREATE TABLE IF NOT EXISTS logs_auditoria (
+      id_log INTEGER PRIMARY KEY AUTOINCREMENT,
+      tabla_afectada TEXT NOT NULL,
+      accion TEXT NOT NULL,
+      id_registro TEXT NOT NULL,
+      detalles TEXT NOT NULL,
+      fecha_hora TEXT DEFAULT CURRENT_TIMESTAMP,
+      id_usuario INTEGER
+    )`);
+
+    await dbRun(`CREATE TRIGGER IF NOT EXISTS trg_paciente_insert AFTER INSERT ON Paciente
+      BEGIN
+        INSERT INTO logs_auditoria (tabla_afectada, accion, id_registro, detalles, id_usuario)
+        VALUES ('Paciente', 'INSERT', NEW.folio_interno, 'Creación de paciente', NEW.ultimo_usuario_id);
+      END;`);
+
+    await dbRun(`CREATE TRIGGER IF NOT EXISTS trg_paciente_update AFTER UPDATE ON Paciente
+      BEGIN
+        INSERT INTO logs_auditoria (tabla_afectada, accion, id_registro, detalles, id_usuario)
+        VALUES ('Paciente', 'UPDATE', NEW.folio_interno, 'Actualización de datos del paciente', NEW.ultimo_usuario_id);
+      END;`);
+
+    await dbRun(`CREATE TRIGGER IF NOT EXISTS trg_nota_insert AFTER INSERT ON Historia_Clinica_Nota
+      BEGIN
+        INSERT INTO logs_auditoria (tabla_afectada, accion, id_registro, detalles, id_usuario)
+        VALUES ('Historia_Clinica_Nota', 'INSERT', NEW.id_nota, 'Creación de nota clínica', NEW.id_usuario_creador);
+      END;`);
+
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_paciente_curp ON Paciente(curp)`);
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_nota_folio ON Historia_Clinica_Nota(folio_paciente)`);
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_receta_folio ON Receta_Medica(folio_paciente)`);
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_auditoria_afectado ON Registro_Auditoria(id_registro_afectado)`);
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_usuario_username ON Usuario_PersonalSalud(username)`);
+    
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_paciente_nombre ON Paciente(nombre, primer_apellido)`);
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_nota_cie10 ON Historia_Clinica_Nota(diagnostico_principal_cie10)`);
+
+    try {
+      const countCIE = await dbGet("SELECT COUNT(*) as count FROM Catalogos_CIE10");
+      if (countCIE && countCIE.count === 0) {
+        console.log("Migrando catálogo CIE-10 a SQLite...");
+        const stmt = db.prepare("INSERT INTO Catalogos_CIE10 (codigo, descripcion, capitulo) VALUES (?, ?, ?)");
+        CATALOGO_CIE10.forEach(item => {
+          stmt.run([item.codigo, item.descripcion, item.capitulo]);
+        });
+        stmt.finalize();
+        console.log("Migración CIE-10 completada.");
+      }
+    } catch(e) {
+      console.error("Error migrando CIE-10:", e);
+    }
 
     try {
       const row = await dbGet("SELECT COUNT(*) AS count FROM Usuario_PersonalSalud");
@@ -108,7 +171,16 @@ function inicializarBaseDeDatos() {
     } catch (e) { 
       console.error("Error inicializando admin:", e);
     }
-  });
+
+    try {
+      await dbRun("VACUUM");
+      console.log("✅ Base de datos compactada (VACUUM).");
+    } catch (e) {
+      console.error("Error optimizando base de datos:", e);
+    }
+  } catch (err) {
+    console.error("Error fatal inicializando la base de datos:", err);
+  }
 }
 
 async function registrarAuditoria(idUsuario, accion, idRegistro = null, detalles = null) {

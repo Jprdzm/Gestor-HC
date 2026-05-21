@@ -72,7 +72,26 @@ ipcMain.handle('registro', async (event, datos) => {
   }
 });
 
-ipcMain.handle('obtener-catalogo-cie10', async (event) => { if (!validateSender(event)) return []; return CATALOGO_CIE10; });
+ipcMain.handle('obtener-catalogo-cie10', async (event) => {
+  if (!validateSender(event)) return [];
+  try {
+    return await dbAll("SELECT * FROM Catalogos_CIE10");
+  } catch(e) {
+    console.error("Error al obtener catálogo CIE-10:", e);
+    return CATALOGO_CIE10;
+  }
+});
+
+ipcMain.handle('obtener-estadisticas-dashboard', async (event) => {
+  try {
+    const totalPacientes = (await dbGet("SELECT COUNT(*) as count FROM Paciente")).count;
+    const diagnosticosFrecuentes = await dbAll("SELECT diagnostico_principal_cie10 as diagnostico, COUNT(*) as cantidad FROM Historia_Clinica_Nota GROUP BY diagnostico_principal_cie10 ORDER BY cantidad DESC LIMIT 5");
+    return { ok: true, totalPacientes, diagnosticosFrecuentes };
+  } catch(e) {
+    console.error("Error en estadísticas dashboard:", e);
+    return { ok: false, error: 'Error al obtener estadísticas.' };
+  }
+});
 ipcMain.handle('ir-a', async (event, pagina) => { if (!validateSender(event)) return { ok: false }; mainWindow.loadFile(pagina); return { ok: true }; });
 
 ipcMain.handle('login', async (event, u, p) => {
@@ -114,9 +133,14 @@ ipcMain.handle('guardar-paciente', async (event, d) => {
   const paternoSanitizado = sanitizarNombreNOM(d.paterno);
   const maternoSanitizado = sanitizarNombreNOM(d.materno);
   const entNac = d.entidad_nacimiento || '00'; const entRes = d.entidad_residencia || '00'; const munRes = d.municipio_residencia || '000'; const locRes = d.localidad_residencia || '0000'; const nac = d.nacionalidad || 'NND';
+  
+  const ahf_final = (d.antecedentes_heredofamiliares && d.antecedentes_heredofamiliares.trim()) ? d.antecedentes_heredofamiliares.trim() : 'Interrogado y no referido';
+  const app_final = (d.antecedentes_personales_patologicos && d.antecedentes_personales_patologicos.trim()) ? d.antecedentes_personales_patologicos.trim() : 'Interrogado y no referido';
+  const apnp_final = (d.antecedentes_personales_no_patologicos && d.antecedentes_personales_no_patologicos.trim()) ? d.antecedentes_personales_no_patologicos.trim() : 'Interrogado y no referido';
+
   try {
-    await dbRun(`INSERT INTO Paciente (folio_interno, curp, nombre, primer_apellido, segundo_apellido, fecha_nacimiento, sexo, nacionalidad, cama, lugar_origen, lugar_residencia, escolaridad, religion, domicilio, telefono, contacto_emergencia_nombre, contacto_emergencia_telefono, ocupacion, estado_civil, lateralidad, entidad_nacimiento, entidad_residencia, municipio_residencia, localidad_residencia) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, 
-      [d.folio.substring(0, 18), curpUpper, nombreSanitizado, paternoSanitizado, maternoSanitizado, d.fecha.trim(), d.sexo, nac, d.cama, d.lugar_origen, d.lugar_residencia, d.escolaridad, d.religion, d.domicilio, d.telefono, d.contacto_emergencia_nombre, d.contacto_emergencia_telefono, d.ocupacion, d.estado_civil, d.lateralidad, entNac, entRes, munRes, locRes]);
+    await dbRun(`INSERT INTO Paciente (folio_interno, curp, nombre, primer_apellido, segundo_apellido, fecha_nacimiento, sexo, nacionalidad, cama, lugar_origen, lugar_residencia, escolaridad, religion, domicilio, telefono, contacto_emergencia_nombre, contacto_emergencia_telefono, ocupacion, estado_civil, lateralidad, entidad_nacimiento, entidad_residencia, municipio_residencia, localidad_residencia, antecedentes_heredofamiliares, antecedentes_personales_patologicos, antecedentes_personales_no_patologicos, ultimo_usuario_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, 
+      [d.folio.substring(0, 18), curpUpper, nombreSanitizado, paternoSanitizado, maternoSanitizado, d.fecha.trim(), d.sexo, nac, d.cama, d.lugar_origen, d.lugar_residencia, d.escolaridad, d.religion, d.domicilio, d.telefono, d.contacto_emergencia_nombre, d.contacto_emergencia_telefono, d.ocupacion, d.estado_civil, d.lateralidad, entNac, entRes, munRes, locRes, ahf_final, app_final, apnp_final, sesionActiva.id_usuario]);
     await registrarAuditoria(sesionActiva.id_usuario, 'CREAR_PACIENTE', d.folio.trim());
     return { ok: true };
   } catch (e) {
@@ -131,9 +155,11 @@ ipcMain.handle('guardar-nota', async (event, d) => {
     const ultima = await dbGet("SELECT hash_nota FROM Historia_Clinica_Nota WHERE folio_paciente = ? ORDER BY id_nota DESC LIMIT 1", [d.folio_paciente]);
     const hashAnt = ultima ? ultima.hash_nota : 'GENESIS';
     const fecha = new Date().toISOString();
-    const h = generarHashNota({ ...d, fecha_creacion: fecha, id_usuario_creador: sesionActiva.id_usuario }, hashAnt);
-    await dbRun(`INSERT INTO Historia_Clinica_Nota (folio_paciente, id_usuario_creador, fecha_creacion, tipo_nota, motivo_consulta, exploracion_fisica, diagnostico_principal_cie10, plan_tratamiento, campos_extra, hash_nota, hash_anterior, firma_profesional, firma_electronica_avanzada) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [d.folio_paciente, sesionActiva.id_usuario, fecha, d.tipo_nota, d.motivo_consulta, d.exploracion_fisica, d.diagnostico_principal_cie10, d.plan_tratamiento, JSON.stringify(d.campos_extra), h, hashAnt, d.firma_profesional || null, d.firma_electronica || null]);
+    const padecimiento_actual_final = (d.padecimiento_actual && d.padecimiento_actual.trim()) ? d.padecimiento_actual.trim() : 'Interrogado y no referido';
+    const d_with_defaults = { ...d, padecimiento_actual: padecimiento_actual_final };
+    const h = generarHashNota({ ...d_with_defaults, fecha_creacion: fecha, id_usuario_creador: sesionActiva.id_usuario }, hashAnt);
+    await dbRun(`INSERT INTO Historia_Clinica_Nota (folio_paciente, id_usuario_creador, fecha_creacion, tipo_nota, motivo_consulta, exploracion_fisica, diagnostico_principal_cie10, plan_tratamiento, campos_extra, hash_nota, hash_anterior, firma_profesional, firma_electronica_avanzada, padecimiento_actual) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [d.folio_paciente, sesionActiva.id_usuario, fecha, d.tipo_nota, d.motivo_consulta, d.exploracion_fisica, d.diagnostico_principal_cie10, d.plan_tratamiento, JSON.stringify(d.campos_extra), h, hashAnt, d.firma_profesional || null, d.firma_electronica || null, padecimiento_actual_final]);
     return { ok: true };
   } catch(e) { console.error("Error al guardar nota:", e); return {ok: false, error: 'Error al guardar la nota'}; }
 });
